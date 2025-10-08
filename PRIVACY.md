@@ -20,27 +20,30 @@ When you download and use the Application, we may collect:
 • The time spent on the Application
 • The operating system you use on your mobile device
 
-The Application does not gather precise information about the location of your mobile device. The Application collects your device's approximate geographical location to help the Service Provider analyze user behavior, identify trends, and improve the overall performance and functionality of the Application.
+Location Information
+
+The Application collects precise location information and transmits it directly to the third-party platform you selected to enable their location-based broadcasting restrictions and geo-gating features. We do not store your location data on our servers.
+
+When location data is shared with third-party platforms for geo-gating purposes, it is governed by that platform's privacy policy.
 
 FACE MASK FEATURE
 
-When you enable the face mask feature in Aperture Live, the Application uses your device's front-facing camera to detect and track your face in real-time. This tracking allows the Application to position virtual mask overlays on your face during live broadcasts.
+When you enable the face mask feature in Aperture Live, the Application uses your device's front-facing camera to detect and track your face in real-time to position virtual mask overlays on your face during live broadcasts.
 
 Important Privacy Information:
 • All face detection and tracking processing occurs entirely on your device
-• No facial recognition data is stored on your device or in our systems
-• No facial data is transmitted to Lively Video or any third party
-• The mathematical representations (vectors) used for mask positioning are generated in real-time and immediately discarded after use
+• No facial recognition data is stored or transmitted to any party
 • You can disable the face mask feature at any time during your broadcast
 
 This technology is similar to camera filters and augmented reality effects used in social media apps. It does not create a biometric profile and cannot be used to identify you.
 
+
 VIDEO BROADCASTING AND THIRD-PARTY PLATFORMS
 
-Aperture Live enables you to broadcast live video to platforms of your choice. When you scan a QR code from a broadcasting platform, you authorize Aperture Live to transmit your video stream to that platform's servers.
+Aperture Live enables you to broadcast live video to platforms of your choice. When you scan a QR code or access the Application via a deeplink from a broadcasting platform, you authorize Aperture Live to transmit your video stream to that platform's servers.
 
 What We Transmit:
-• Your live video and audio stream to the platform's streaming endpoint (WHIP URL) that you selected by scanning their QR code
+• Your live video and audio stream to the platform's streaming endpoint (WHIP URL) that you selected by scanning their QR code or accessing their deeplink
 • Periodic video frames to the platform's interface displayed within our Application to enable chat, interactions, and other platform features
 
 What You Should Know:
@@ -50,7 +53,7 @@ What You Should Know:
 • We strongly recommend reviewing the privacy policy of any platform before broadcasting to them
 
 Your Control:
-• You choose which platforms to broadcast to by scanning their QR codes
+• You choose which platforms to broadcast to by scanning their QR codes or following a deeplink
 • You can stop broadcasting at any time
 • Uninstalling Aperture Live stops all video transmission, but does not affect video already transmitted to third-party platforms
 
@@ -58,17 +61,17 @@ For questions about how a specific platform uses your video, please contact that
 
 DATA WE DO NOT COLLECT
 
-For transparency, we want to be clear about data we DO NOT collect:
-• Facial Recognition Data: We do not create, store, or transmit facial recognition databases or biometric identifiers
-• Video Storage: We do not store your broadcast video; it is transmitted directly to your chosen platform
-• Viewing Analytics: We do not track what you watch or who watches your streams
-• Cross-App Tracking: We do not track your activity across other apps or websites for advertising purposes
+For transparency:
+• We do not create, store, or transmit facial recognition databases
+• We do not store your broadcast video
+• We do not track your activity across other apps for advertising
 
 THIRD-PARTY SERVICES
 
 The Application utilizes third-party services that have their own Privacy Policy about handling data. Below are the links to the Privacy Policy of the third-party service providers used by the Application:
 
 • Google Play Services: https://policies.google.com/privacy
+• Apple App Store: https://www.apple.com/legal/privacy/
 • Unity: https://unity.com/legal/privacy-policy
 
 When you use Aperture Live to broadcast to a third-party platform, that platform becomes a data controller for your video content. We are not responsible for the privacy practices of third-party platforms you choose to broadcast to.
@@ -78,8 +81,7 @@ THIRD-PARTY ACCESS AND DATA SHARING
 The Service Provider may share aggregated, anonymized usage data with third-party services to help improve the Application and optimize performance. This data does not include your video content or facial tracking information.
 
 The Service Provider may disclose information:
-• As required by law, such as to comply with a subpoena or similar legal process
-• When we believe in good faith that disclosure is necessary to protect our rights, protect your safety or the safety of others, investigate fraud, or respond to a government request
+• As required by law, such as to comply with a subpoena, court order, or similar legal process, or when we have a legal obligation to disclose information to protect against imminent harm or criminal activity
 • With trusted service providers who work on our behalf, do not have an independent use of the information we disclose to them, and have agreed to adhere to the rules set forth in this privacy statement
 
 We do not sell your personal information to third parties.
@@ -100,11 +102,7 @@ To stop broadcasting to a specific platform, simply stop your broadcast within t
 
 DATA RETENTION POLICY
 
-The Service Provider will retain usage and device information for as long as you use the Application and for a reasonable time thereafter for analytics and improvement purposes.
-
-Important Note: Because we do not store your video content or facial tracking data, there is no video or biometric data to retain or delete. Video is transmitted directly to third-party platforms you select.
-
-If you'd like us to delete usage data that you have provided via the Application, please contact us at support@livelyvideo.tv and we will respond in a reasonable time.
+The Service Provider will retain usage and device information for as long as you use the Application and for up to 90 days thereafter for analytics and improvement purposes. Location data collected is not retained by the Service Provider.
 
 CHILDREN
 
@@ -132,7 +130,9 @@ The date of the last update is shown at the top of this policy.
 
 YOUR CONSENT
 
-By using the Application, you are consenting to the processing of your information as set forth in this Privacy Policy now and as amended by us.
+By using the Application, you consent to the collection and use of information as described in this Privacy Policy. For data processing that requires consent under applicable law, we will obtain your explicit consent before collecting or processing such data.
+
+If we make material changes to how we handle your personal information, we will notify you and, where required by law, seek your consent before implementing such changes.
 
 YOUR RIGHTS
 
@@ -152,3 +152,16 @@ If you are a California resident, you have specific rights under the California 
 CONTACT US
 
 If you have any questions regarding privacy while using the Application, or have questions about our practices, please contact the Service Provider via email at support@livelyvideo.tv.
+
+---
+
+SUMMARY OF KEY POINTS
+
+For your convenience, here are the key points of our privacy policy:
+
+- We do not store your video content - it goes directly to platforms you choose
+- Face mask feature processes data on your device only - no facial data is stored or transmitted
+- We collect basic usage data to improve the app
+- Third-party platforms you broadcast to have their own privacy policies
+- You control what platforms you broadcast to by scanning their QR codes or following a deeplink
+- You can stop using the app at any time by uninstalling it
