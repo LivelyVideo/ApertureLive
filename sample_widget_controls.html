@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <style>
+            .container {
+                column-count: 1;
+                padding: 25px;
+            }
+            .container div {
+                padding: 25px;
+                text-align: center;
+            }
+            .container div button {
+                width: 500px;
+                height: 100px;
+                font-size: 36px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div><button type="button" onclick="toggleMic()">toggle mic</button></div>
+            <div><button type="button" onclick="mute()">mute</button></div>
+            <div><button type="button" onclick="unmute()">unmute</button></div>
+            <div><button type="button" onclick="flipCamera()">flip camera</button></div>
+            <div><button type="button" onclick="userCamera()">user camera</button></div>
+            <div><button type="button" onclick="worldCamera()">world camera</button></div>
+            <div><button type="button" onclick="startBroadcasting()">start broadcasting</button></div>
+            <div><button type="button" onclick="stopBroadcasting()">stop broadcasting</button></div>
+        </div>
+        <script>
+            function toggleMic()
+            {
+                postMessage({ type: 'toggleMic', data: '' });
+            }
+            function mute()
+            {
+                postMessage({ type: 'mute', data: '' });
+            }
+            function unmute()
+            {
+                postMessage({ type: 'unmute', data: '' });
+            }
+            function flipCamera()
+            {
+                postMessage({ type: 'flipCamera', data: '' });
+            }
+            function userCamera()
+            {
+                postMessage({ type: 'userCamera', data: '' });
+            }
+            function worldCamera()
+            {
+                postMessage({ type: 'worldCamera', data: '' });
+            }
+            function startBroadcasting()
+            {
+                postMessage({ type: 'startBroadcasting', data: '' });
+            }
+            function stopBroadcasting()
+            {
+                postMessage({ type: 'stopBroadcasting', data: '' });
+            }
+            function postMessage(msg)
+            {
+                if (window.vuplex)
+                {
+                    window.vuplex.postMessage(msg);
+                }
+            }
+        </script>
+    </body>
+</html>
