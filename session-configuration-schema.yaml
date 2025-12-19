@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Aperture Live Session Configuration API
+  version: 1.0.0
+  description: Schema for session configuration used in WHIP streaming sessions
+
+components:
+  schemas:
+    SessionConfiguration:
+      type: object
+      description: Main session configuration received via QR code payload
+      properties:
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: HTTP headers for WHIP requests (e.g., Authorization)
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        whip:
+          type: string
+          format: uri
+          description: WHIP endpoint URL for WebRTC ingestion
+        stun_urls:
+          type: array
+          items:
+            type: string
+          deprecated: true
+          description: "Deprecated: Use ice_servers instead"
+        ice_servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/RTCIceServer'
+          description: ICE servers (STUN/TURN) for WebRTC connectivity
+        ice_transport_policy:
+          type: string
+          enum: [all, relay]
+          description: ICE transport policy (all or relay-only)
+
+    Metadata:
+      type: object
+      properties:
+        version:
+          type: integer
+          default: 1
+          description: Schema version
+        options:
+          $ref: '#/components/schemas/Options'
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Widget'
+          description: Embedded web widgets to display during broadcast
+        privacy:
+          type: boolean
+          nullable: true
+          deprecated: true
+          description: "Deprecated: Moved to metadata.options.privacy"
+        location:
+          type: boolean
+          nullable: true
+          description: Whether location tracking is enabled
+        ptt:
+          type: boolean
+          nullable: true
+          description: Push-to-talk mode enabled
+        locationHref:
+          type: string
+          description: Location reference URL
+        ecs:
+          $ref: '#/components/schemas/ECS'
+
+    Options:
+      type: object
+      properties:
+        pendingValues:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Pending configuration values
+        privacy:
+          type: boolean
+          nullable: true
+          description: Enable privacy features (blur/mask)
+        ui:
+          $ref: '#/components/schemas/UI'
+        fixedEncodingMode:
+          type: boolean
+          nullable: true
+          description: Use fixed resolution/bitrate instead of adaptive
+        useCBR:
+          type: boolean
+          nullable: true
+          description: Use constant bitrate encoding
+
+    UI:
+      type: object
+      properties:
+        compact:
+          type: boolean
+          nullable: true
+          description: Use compact UI layout
+        hideBar:
+          type: boolean
+          nullable: true
+          description: Hide the status/control bar
+        contentMargin:
+          type: integer
+          nullable: true
+          description: Content margin in pixels
+
+    Widget:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Widget URL to load
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: HTTP headers for widget requests
+        key:
+          type: string
+          description: Unique identifier for the widget
+        cookies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CookieData'
+          description: Cookies to set for the widget
+        fullscreen:
+          type: boolean
+          default: false
+          deprecated: true
+          description: "Deprecated: Use metadata.options.ui"
+        safearea:
+          type: boolean
+          default: false
+          deprecated: true
+          description: "Deprecated: Use metadata.options.ui"
+
+    CookieData:
+      type: object
+      properties:
+        httpOnly:
+          type: boolean
+        sameSite:
+          type: string
+          enum: [Strict, Lax, None]
+        path:
+          type: string
+        domain:
+          type: string
+        secure:
+          type: boolean
+        name:
+          type: string
+        value:
+          type: string
+
+    RTCIceServer:
+      type: object
+      description: WebRTC ICE server configuration
+      properties:
+        urls:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: STUN/TURN server URL(s)
+        username:
+          type: string
+          description: Username for TURN authentication
+        credential:
+          type: string
+          description: Credential for TURN authentication
+        credentialType:
+          type: string
+          enum: [password, oauth]
+          description: Type of credential
+
+    ECS:
+      type: object
+      description: Elastic Common Schema logging configuration
+      properties:
+        user:
+          $ref: '#/components/schemas/EcsUser'
+        labels:
+          $ref: '#/components/schemas/Labels'
+
+    Labels:
+      type: object
+      properties:
+        platform:
+          $ref: '#/components/schemas/Platform'
+
+    Platform:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Platform identifier
+
+    EcsUser:
+      type: object
+      description: ECS User information for logging
+      properties:
+        domain:
+          type: string
+          description: Directory domain name (e.g., LDAP/AD)
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+          description: User's full name
+        hash:
+          type: string
+          description: Anonymized user hash
+        id:
+          type: string
+          description: Unique user identifier
+        name:
+          type: string
+          description: Short name or login
+        roles:
+          type: array
+          items:
+            type: string
+          description: User roles
