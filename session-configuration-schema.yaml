@@ -94,6 +94,38 @@ components:
           type: boolean
           nullable: true
           description: Use constant bitrate encoding
+        resolution:
+          type: string
+          nullable: true
+          description: Video resolution (e.g., "1080p", "720p", "480p")
+          example: "720p"
+        audioBitrate:
+          type: integer
+          nullable: true
+          description: Audio bitrate in kbps
+          example: 128
+        videoBitrate:
+          type: integer
+          nullable: true
+          description: Video bitrate in kbps
+          example: 2500
+        videoCodec:
+          type: string
+          nullable: true
+          description: Video codec MIME type
+          example: "video/H264"
+          enum: ["video/H264", "video/VP8"]
+        framerate:
+          type: integer
+          nullable: true
+          description: Target framerate in fps
+          example: 30
+        audioPriorityMode:
+          type: string
+          nullable: true
+          description: Audio priority mode for bitrate allocation
+          enum: [Balanced, AudioFirst]
+          example: "Balanced"
 
     UI:
       type: object
