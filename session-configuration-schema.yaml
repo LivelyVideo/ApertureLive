@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Aperture Live Session Configuration API
   version: 1.0.0
-  description: Schema for session configuration used in WHIP streaming sessions
+  description: Schema for session configuration used in WHIP (WebRTC) and RTMP streaming sessions
 
 components:
   schemas:
@@ -67,6 +67,24 @@ components:
         locationHref:
           type: string
           description: Location reference URL
+        rtmpURL:
+          type: string
+          format: uri
+          nullable: true
+          description: >-
+            RTMP ingest URL for RTMP egress to platforms that only accept RTMP
+            (e.g. YouTube, Twitch, custom). When present and non-empty, the
+            session streams via RTMP instead of WHIP/WebRTC; the transport is
+            inferred from the presence of this field. The top-level `whip` URL
+            is ignored for RTMP sessions.
+          example: "rtmp://live.example.com/app"
+        rtmpStreamKey:
+          type: string
+          nullable: true
+          description: >-
+            RTMP stream key appended to the publish request. Optional; may be
+            omitted or empty when the key is embedded in `rtmpURL`.
+          example: "sk-test-123"
         ecs:
           $ref: '#/components/schemas/ECS'
 
