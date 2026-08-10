@@ -266,6 +266,9 @@ components:
 
     Widget:
       type: object
+      description: >-
+        A web view embedded in the broadcast UI. Layout is controlled session-
+        wide via `metadata.options.ui` — there are no per-widget layout keys.
       required: [url]
       properties:
         url:
@@ -285,16 +288,6 @@ components:
           items:
             $ref: '#/components/schemas/CookieData'
           description: Cookies to set for the widget
-        fullscreen:
-          type: boolean
-          default: false
-          deprecated: true
-          description: "Deprecated: Use metadata.options.ui. Ignored by the client."
-        safearea:
-          type: boolean
-          default: false
-          deprecated: true
-          description: "Deprecated: Use metadata.options.ui. Ignored by the client."
 
     CookieData:
       type: object
