@@ -2,40 +2,60 @@ openapi: 3.0.3
 info:
   title: Aperture Live Session Configuration API
   version: 1.0.0
-  description: Schema for session configuration used in WHIP (WebRTC) and RTMP streaming sessions
+  description: >-
+    Schema for session configuration used in WHIP (WebRTC) and RTMP streaming
+    sessions. The payload is fetched from the URL encoded in the QR code and
+    decoded with a strict, camelCase-literal JSON decoder: keys are matched
+    exactly as spelled below (no snake_case conversion except where a field is
+    explicitly named with underscores), and unknown keys are ignored.
 
 components:
   schemas:
     SessionConfiguration:
       type: object
       description: Main session configuration received via QR code payload
+      required: [whip]
       properties:
         headers:
           type: object
           additionalProperties:
             type: string
-          description: HTTP headers for WHIP requests (e.g., Authorization)
+          description: >-
+            HTTP headers for WHIP requests. Only `Authorization` is consumed by
+            the client: a leading "Bearer " prefix is stripped and the remainder
+            is used as the session bearer token.
         metadata:
           $ref: '#/components/schemas/Metadata'
         whip:
           type: string
           format: uri
-          description: WHIP endpoint URL for WebRTC ingestion
+          description: >-
+            WHIP endpoint URL for WebRTC ingestion. Required on every payload,
+            including RTMP sessions, and must use the `https` scheme — the
+            client rejects the configuration otherwise. For RTMP sessions the
+            value is stored but unused (see `metadata.rtmpURL`).
         stun_urls:
           type: array
           items:
             type: string
           deprecated: true
-          description: "Deprecated: Use ice_servers instead"
+          description: >-
+            "Deprecated: Use ice_servers instead." Only consulted when
+            `ice_servers` is absent; each entry becomes a STUN-only ICE server.
         ice_servers:
           type: array
           items:
             $ref: '#/components/schemas/RTCIceServer'
-          description: ICE servers (STUN/TURN) for WebRTC connectivity
+          description: >-
+            ICE servers (STUN/TURN) for WebRTC connectivity. Entries that fail
+            URL validation are dropped individually rather than failing the
+            whole payload.
         ice_transport_policy:
           type: string
           enum: [all, relay]
-          description: ICE transport policy (all or relay-only)
+          description: >-
+            ICE transport policy (all or relay-only). Not consumed by the iOS
+            client, which always uses `all`.
 
     Metadata:
       type: object
@@ -44,6 +64,21 @@ components:
           type: integer
           default: 1
           description: Schema version
+        name:
+          type: string
+          description: >-
+            Display name for the session. When absent, the client falls back to
+            `ecs.user.full_name`, then `ecs.user.name`, then an empty string.
+        streamName:
+          type: string
+          description: Stream name reported in logs and the broadcast UI
+        platformName:
+          type: string
+          description: Name of the originating platform, reported in logs
+        logUrl:
+          type: string
+          format: uri
+          description: Remote endpoint that receives ECS-formatted client logs
         options:
           $ref: '#/components/schemas/Options'
         widgets:
@@ -55,7 +90,9 @@ components:
           type: boolean
           nullable: true
           deprecated: true
-          description: "Deprecated: Moved to metadata.options.privacy"
+          description: >-
+            "Deprecated: Moved to metadata.options.privacy." Still honored as a
+            fallback when `metadata.options.privacy` is absent.
         location:
           type: boolean
           nullable: true
@@ -83,13 +120,18 @@ components:
           nullable: true
           description: >-
             RTMP stream key appended to the publish request. Optional; may be
-            omitted or empty when the key is embedded in `rtmpURL`.
+            omitted or empty when the key is embedded in `rtmpURL`. Ignored
+            unless `rtmpURL` is present and non-empty.
           example: "sk-test-123"
         ecs:
           $ref: '#/components/schemas/ECS'
 
     Options:
       type: object
+      description: >-
+        Session options. Integer-typed fields are parsed defensively: a value of
+        an unexpected type (e.g. the string "41" for `h264MaxProfileLevel`) is
+        logged and dropped instead of failing the whole payload.
       properties:
         pendingValues:
           type: object
@@ -115,7 +157,10 @@ components:
         resolution:
           type: string
           nullable: true
-          description: Video resolution (e.g., "1080p", "720p", "480p")
+          description: >-
+            Video resolution preset. Matched case-insensitively; unrecognized
+            values leave the default (720p) in place.
+          enum: ["480p", "720p", "1080p", "1440p", "4K"]
           example: "720p"
         audioBitrate:
           type: integer
@@ -127,12 +172,21 @@ components:
           nullable: true
           description: Video bitrate in kbps
           example: 2500
+        startBitrate:
+          type: integer
+          nullable: true
+          description: >-
+            Initial congestion-controller bitrate in kbps. Applies to the
+            WHIP/WebRTC path only.
+          example: 1200
         videoCodec:
           type: string
           nullable: true
-          description: Video codec MIME type
+          description: >-
+            Video codec MIME type. Matched case-insensitively; unrecognized
+            values leave the default (video/H264) in place.
           example: "video/H264"
-          enum: ["video/H264", "video/VP8"]
+          enum: ["video/H264", "video/VP8", "video/VP9"]
         framerate:
           type: integer
           nullable: true
@@ -141,9 +195,56 @@ components:
         audioPriorityMode:
           type: string
           nullable: true
-          description: Audio priority mode for bitrate allocation
+          description: >-
+            Audio priority mode for bitrate allocation. Matched
+            case-insensitively.
           enum: [Balanced, AudioFirst]
           example: "Balanced"
+        h264Profile:
+          type: integer
+          nullable: true
+          description: >-
+            H.264 profile as its `profile_idc` value, used to build the SDP
+            `profile-level-id`. Defaults to Baseline (66) when the codec is
+            H.264 and no profile is given. High 10 (101) is not supported by
+            iOS VideoToolbox.
+          enum: [66, 77, 100, 101]
+          example: 66
+        h264MaxProfileLevel:
+          type: integer
+          nullable: true
+          description: >-
+            Maximum H.264 level as its `level_idc` value (e.g. 40 = Level 4.0),
+            which caps the encoded frame size. Defaults to a resolution-aware
+            level with a floor of 4.0 when the codec is H.264 and no level is
+            given.
+          enum: [31, 32, 40, 41, 42, 50, 51, 52]
+          example: 40
+        lockOrientation:
+          type: string
+          nullable: true
+          description: >-
+            Lock the broadcast to a single orientation. Matched
+            case-insensitively; unrecognized values leave orientation unlocked.
+          enum: [portrait, landscape]
+          example: "portrait"
+        lockCameraMode:
+          type: string
+          nullable: true
+          description: >-
+            Restrict the session to a single camera mode. Matched
+            case-insensitively.
+          enum: [Telephoto, AR]
+          example: "Telephoto"
+        defaultCameraFacing:
+          type: string
+          nullable: true
+          description: >-
+            Camera to select when the session starts. Matched
+            case-insensitively; defaults to World.
+          enum: [User, World]
+          default: "World"
+          example: "World"
 
     UI:
       type: object
@@ -151,10 +252,12 @@ components:
         compact:
           type: boolean
           nullable: true
+          default: false
           description: Use compact UI layout
         hideBar:
           type: boolean
           nullable: true
+          default: false
           description: Hide the status/control bar
         contentMargin:
           type: integer
@@ -163,6 +266,7 @@ components:
 
     Widget:
       type: object
+      required: [url]
       properties:
         url:
           type: string
@@ -185,43 +289,51 @@ components:
           type: boolean
           default: false
           deprecated: true
-          description: "Deprecated: Use metadata.options.ui"
+          description: "Deprecated: Use metadata.options.ui. Ignored by the client."
         safearea:
           type: boolean
           default: false
           deprecated: true
-          description: "Deprecated: Use metadata.options.ui"
+          description: "Deprecated: Use metadata.options.ui. Ignored by the client."
 
     CookieData:
       type: object
+      description: >-
+        Cookie to install before loading a widget. Only `name`, `value`,
+        `domain`, and `path` are consumed by the client.
+      required: [name, value]
       properties:
-        httpOnly:
-          type: boolean
-        sameSite:
-          type: string
-          enum: [Strict, Lax, None]
-        path:
-          type: string
-        domain:
-          type: string
-        secure:
-          type: boolean
         name:
           type: string
         value:
           type: string
+        domain:
+          type: string
+        path:
+          type: string
+        httpOnly:
+          type: boolean
+          description: Not consumed by the client
+        sameSite:
+          type: string
+          enum: [Strict, Lax, None]
+          description: Not consumed by the client
+        secure:
+          type: boolean
+          description: Not consumed by the client
 
     RTCIceServer:
       type: object
       description: WebRTC ICE server configuration
+      required: [urls]
       properties:
         urls:
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-          description: STUN/TURN server URL(s)
+          type: array
+          items:
+            type: string
+          description: >-
+            STUN/TURN server URLs. Must be an array — a bare string fails to
+            decode. Entries are validated and invalid servers are dropped.
         username:
           type: string
           description: Username for TURN authentication
@@ -231,11 +343,14 @@ components:
         credentialType:
           type: string
           enum: [password, oauth]
-          description: Type of credential
+          description: Type of credential. Not consumed by the client.
 
     ECS:
       type: object
-      description: Elastic Common Schema logging configuration
+      description: >-
+        Elastic Common Schema logging configuration. Only `user.name` and
+        `user.full_name` are consumed by the client; the remaining fields are
+        accepted for compatibility and ignored.
       properties:
         user:
           $ref: '#/components/schemas/EcsUser'
@@ -267,7 +382,9 @@ components:
           format: email
         full_name:
           type: string
-          description: User's full name
+          description: >-
+            User's full name. Used as the session display name when
+            `metadata.name` is absent.
         hash:
           type: string
           description: Anonymized user hash
@@ -276,7 +393,9 @@ components:
           description: Unique user identifier
         name:
           type: string
-          description: Short name or login
+          description: >-
+            Short name or login. Used as the session display name when both
+            `metadata.name` and `ecs.user.full_name` are absent.
         roles:
           type: array
           items:
