@@ -1,6 +1,6 @@
 Privacy Policy
 
-Last Updated: October 8, 2025
+Last Updated: October 30, 2026
 
 This privacy policy applies to the Aperture Live app (hereby referred to as "Application") for mobile devices that was created by Lively Video LLC (hereby referred to as "Service Provider") as a Free service. This service is intended for use "AS IS".
 
@@ -19,24 +19,6 @@ When you download and use the Application, we may collect:
 • The pages of the Application that you visit, the time and date of your visit, the time spent on those pages
 • The time spent on the Application
 • The operating system you use on your mobile device
-
-Location Information
-
-The Application collects precise location information and transmits it directly to the third-party platform you selected to enable their location-based broadcasting restrictions and geo-gating features. We do not store your location data on our servers.
-
-When location data is shared with third-party platforms for geo-gating purposes, it is governed by that platform's privacy policy.
-
-FACE MASK FEATURE
-
-When you enable the face mask feature in Aperture Live, the Application uses your device's front-facing camera to detect and track your face in real-time to position virtual mask overlays on your face during live broadcasts.
-
-Important Privacy Information:
-• All face detection and tracking processing occurs entirely on your device
-• No facial recognition data is stored or transmitted to any party
-• You can disable the face mask feature at any time during your broadcast
-
-This technology is similar to camera filters and augmented reality effects used in social media apps. It does not create a biometric profile and cannot be used to identify you.
-
 
 VIDEO BROADCASTING AND THIRD-PARTY PLATFORMS
 
@@ -62,7 +44,6 @@ For questions about how a specific platform uses your video, please contact that
 DATA WE DO NOT COLLECT
 
 For transparency:
-• We do not create, store, or transmit facial recognition databases
 • We do not store your broadcast video
 • We do not track your activity across other apps for advertising
 
@@ -72,13 +53,12 @@ The Application utilizes third-party services that have their own Privacy Policy
 
 • Google Play Services: https://policies.google.com/privacy
 • Apple App Store: https://www.apple.com/legal/privacy/
-• Unity: https://unity.com/legal/privacy-policy
 
 When you use Aperture Live to broadcast to a third-party platform, that platform becomes a data controller for your video content. We are not responsible for the privacy practices of third-party platforms you choose to broadcast to.
 
 THIRD-PARTY ACCESS AND DATA SHARING
 
-The Service Provider may share aggregated, anonymized usage data with third-party services to help improve the Application and optimize performance. This data does not include your video content or facial tracking information.
+The Service Provider may share aggregated, anonymized usage data with third-party services to help improve the Application and optimize performance. This data does not include your video content.
 
 The Service Provider may disclose information:
 • As required by law, such as to comply with a subpoena, court order, or similar legal process, or when we have a legal obligation to disclose information to protect against imminent harm or criminal activity
@@ -88,9 +68,7 @@ We do not sell your personal information to third parties.
 
 CAMERA AND MICROPHONE ACCESS
 
-The Application requires access to your device's camera and microphone to enable video broadcasting. This access is used solely for:
-• Capturing video and audio for live broadcasting
-• Enabling the face mask feature (optional)
+The Application requires access to your device's camera and microphone to enable video broadcasting. This access is used solely for capturing video and audio for live broadcasting.
 
 You can revoke camera and microphone permissions at any time through your device's settings, though this will prevent the Application from functioning.
 
@@ -102,7 +80,7 @@ To stop broadcasting to a specific platform, simply stop your broadcast within t
 
 DATA RETENTION POLICY
 
-The Service Provider will retain usage and device information for as long as you use the Application and for up to 90 days thereafter for analytics and improvement purposes. Location data collected is not retained by the Service Provider.
+The Service Provider will retain usage and device information for as long as you use the Application and for up to 90 days thereafter for analytics and improvement purposes.
 
 CHILDREN
 
@@ -160,7 +138,6 @@ SUMMARY OF KEY POINTS
 For your convenience, here are the key points of our privacy policy:
 
 - We do not store your video content - it goes directly to platforms you choose
-- Face mask feature processes data on your device only - no facial data is stored or transmitted
 - We collect basic usage data to improve the app
 - Third-party platforms you broadcast to have their own privacy policies
 - You control what platforms you broadcast to by scanning their QR codes or following a deeplink

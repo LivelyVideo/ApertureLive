@@ -1,0 +1,68 @@
+---
+name: widget-bridge-reference
+description: The exact Aperture Live widget JavaScript bridge contract (command types, payloads, events, platform limits). Load before writing, editing, reviewing, or explaining any widget code that talks to the Aperture Live app, so no message type or payload is invented.
+---
+
+# Aperture Live widget bridge contract
+
+This is the complete contract. If a widget needs something that isn't listed here, the app can't do it. Say so instead of making up a message type, field, or event.
+
+The full guide, with examples and the reasons behind each rule, is `docs/widgets.md`. Read it when you need more than this summary.
+
+## Transport
+
+- **Widget → app:** `window.webkit.messageHandlers.nativeApp.postMessage({ type: string, data: any })`. Look up the handler on each send; don't cache it at load.
+- **App → widget:** the app calls `window.postMessage({ name: string, data: string }, targetOrigin)`. Listen with `window.addEventListener('message', e => …)` and read `e.data.name` and `e.data.data`.
+- Event `data` is **always a string**. Only `sessionConfigurationUpdated` carries JSON that needs `JSON.parse`.
+- The app ignores unknown command types without an error.
+- Never use `window.vuplex`. That bridge has been removed.
+
+## Commands (widget → app)
+
+| `type` | `data` | Effect |
+|---|---|---|
+| `toggleMic` | `null` | Toggles the mic mute |
+| `mute` | `null` | Mutes the mic (does nothing if already muted) |
+| `unmute` | `null` | Unmutes the mic (does nothing if already unmuted) |
+| `flipCamera` | `null` | Switches between the front and back cameras |
+| `userCamera` | `null` | Currently toggles, like `flipCamera` |
+| `worldCamera` | `null` | Currently toggles, like `flipCamera` |
+| `startBroadcasting` | `null` | Goes live (opens the QR scanner if there is no ingest URL) |
+| `stopBroadcasting` | `null` | Shows the native stop confirmation |
+| `requestSnapshotImage` | `null` | The reply is `snapshotImage`, or nothing if no frame is available |
+| `setPendingValues` | `{ headers: { [name]: string \| string[] } }` | Accepted only while the app waits for pending values; then the app goes live |
+| `setWebviewOrigin` | origin string | Sets the target origin for events; use `location.origin` |
+| `setSessionConfigurationLink` | `{ url: string, otp?: string }` | `url` must be HTTPS on the host of the session's QR code; the reply is `sessionConfigurationUpdated` |
+| `updateSessionConfiguration` | a session configuration object (must include `whip`, `metadata.rtmpURL` or `metadata.srtURL`) | Merged into the profile; the reply is `sessionConfigurationUpdated` (iOS only) |
+
+`setPendingValues` drops these headers: `Authorization`, `Content-Type`, `Content-Length`, `Host`, `Cookie`, `Connection`.
+
+## Events (app → widget)
+
+| `name` | `data` |
+|---|---|
+| `callStateChanged` | `idle` \| `creating` \| `connecting` \| `live` \| `reconnecting` \| `failed` \| `stopped` |
+| `snapshotImage` | `data:image/jpeg;base64,…` |
+| `sessionConfigurationUpdated` | JSON string `{"success":bool,"error"?:string}` |
+
+No other events exist. The app reports neither the mute state nor the active camera, and it doesn't send the current state when the page loads. On iOS the widget loads when the stream goes live.
+
+## Session configuration entry
+
+```json
+"metadata": {
+  "widgets": [
+    { "key": "appWidget", "url": "https://…", "headers": { }, "cookies": [ { "name": "", "value": "", "domain": "", "path": "/" } ] }
+  ]
+}
+```
+
+- `url` must be `https://`.
+- Only the first widget loads. Android requires `key: "appWidget"`.
+- `headers` go on the first page request only.
+- Cookies use `name`, `value`, `domain`, and `path`. Always set `domain`.
+- Layout is session-wide in `metadata.options.ui`, whose only option is `compact`.
+
+## Android
+
+Android installs the same `webkit.messageHandlers.nativeApp` shape. It acts only on `setPendingValues`, `setWebviewOrigin`, and `setSessionConfigurationLink`, and the widget is usable only while the app waits for pending values. It still sends `callStateChanged`. When a widget needs controls that work on Android, say that the controls are iOS-only today.
