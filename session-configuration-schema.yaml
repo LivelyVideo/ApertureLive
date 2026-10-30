@@ -8,6 +8,13 @@ info:
     decoded with a strict, camelCase-literal JSON decoder: keys are matched
     exactly as spelled below (no snake_case conversion except where a field is
     explicitly named with underscores), and unknown keys are ignored.
+    Exception: the iOS client still decodes some retired keys that are no
+    longer documented here: `metadata.privacy`, `metadata.location`,
+    `metadata.ptt`, `metadata.locationHref`, `metadata.options.privacy`,
+    `metadata.options.ui.hideBar` and `metadata.options.ui.contentMargin`.
+    They have no effect, but a value of the wrong type (for example
+    `"privacy": "true"` instead of a boolean) fails the whole payload on iOS.
+    Omit them.
 
 components:
   schemas:
@@ -17,7 +24,8 @@ components:
         Main session configuration received via QR code payload. A payload
         needs at least one ingest endpoint: `whip`, `metadata.rtmpURL` or
         `metadata.srtURL`. When more than one is set, the client streams over
-        RTMP first, then SRT, then WHIP. The Android client currently accepts
+        RTMP first, then SRT, then WHIP. An empty or whitespace-only
+        `rtmpURL` or `srtURL` doesn't count. The Android client currently accepts
         only WHIP payloads, and also requires at least one entry in
         `ice_servers` or `stun_urls`.
       anyOf:
@@ -26,10 +34,18 @@ components:
           properties:
             metadata:
               required: [rtmpURL]
+              properties:
+                rtmpURL:
+                  type: string
+                  pattern: '\S'
         - required: [metadata]
           properties:
             metadata:
               required: [srtURL]
+              properties:
+                srtURL:
+                  type: string
+                  pattern: '\S'
       properties:
         headers:
           type: object
@@ -37,8 +53,10 @@ components:
             type: string
           description: >-
             HTTP headers for WHIP requests. Only `Authorization` is consumed by
-            the client: a leading "Bearer " prefix is stripped and the remainder
-            is used as the session bearer token.
+            the client: every occurrence of "Bearer " (case-sensitive, with
+            the trailing space) is removed and the rest is used as the session
+            bearer token. Send `Bearer <token>` or the bare token; a lowercase
+            `bearer <token>` is sent as-is and fails authentication.
         metadata:
           $ref: '#/components/schemas/Metadata'
         whip:

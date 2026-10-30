@@ -18,7 +18,7 @@ description: Check an Aperture Live session configuration JSON document against 
 Report each finding as **error** (the configuration is rejected, or the feature won't work), **warning** (likely a mistake), or **note**, together with its JSON path:
 
 1. The document parses as JSON, and the top level is an object.
-2. At least one ingest endpoint is present: `whip`, `metadata.rtmpURL` or `metadata.srtURL` (error if none). `whip`, when present, uses `https://` (error otherwise).
+2. At least one ingest endpoint is present: `whip`, `metadata.rtmpURL` or `metadata.srtURL` (error if none). An empty or whitespace-only `rtmpURL` / `srtURL` doesn't count. `whip`, when present, uses `https://` (error otherwise).
    - When more than one is set, note which one the app uses: RTMP first, then SRT, then WHIP. The others are ignored.
    - If there's no `whip`, or no `ice_servers` / `stun_urls` entry, warn that the Android app rejects the configuration; Android accepts only WHIP payloads with ICE servers.
 3. For RTMP (`metadata.rtmpURL` present and non-empty), the URL is `rtmp://` or `rtmps://`. `rtmpStreamKey` is used only together with it.
@@ -30,7 +30,7 @@ Report each finding as **error** (the configuration is rejected, or the feature 
 
    Note any other `srt*` field set without `srtURL`; it has no effect.
 5. `metadata` fields have the right JSON type. A wrong type there, such as `"srtLatencyMs": "120"` (a string), fails the whole payload, unlike integer fields in `metadata.options`, which are dropped one at a time.
-6. `headers.Authorization`, if present, has the form `Bearer <token>`. The app uses no other top-level header.
+6. `headers.Authorization`, if present: the app removes every case-sensitive `"Bearer "` and uses the rest as the token, so `Bearer <token>` and a bare `<token>` both work. Report an error for any other casing such as `bearer <token>` or `BEARER <token>`; it's sent as part of the token, and authentication fails. The app uses no other top-level header.
 7. Every field's type and enum value matches the schema.
 8. `ice_servers[*].urls` is an array, not a single string.
 9. Widgets, at `metadata.widgets`, not at the top level:
@@ -40,6 +40,7 @@ Report each finding as **error** (the configuration is rejected, or the feature 
    - Each cookie has `name` and `value` (error) and should have `domain` (warning; Android skips cookies without one).
 10. `metadata.options.pendingValues`, if present, is a non-empty object whose values are arrays of strings, and there is a widget to supply the values (error if there's no widget).
 11. Deprecated field: `stun_urls` (use `ice_servers`).
+12. Retired keys that iOS still decodes: `metadata.privacy`, `metadata.location`, `metadata.ptt`, `metadata.locationHref`, `metadata.options.privacy`, `metadata.options.ui.hideBar` and `metadata.options.ui.contentMargin`. They're not in the schema and have no effect, but iOS still type-checks them. Report a warning to remove any that are present. Report an error if one has the wrong type, because iOS rejects the whole payload: the `privacy`, `location` and `ptt` keys and `hideBar` must be booleans, `locationHref` a string, and `contentMargin` an integer.
 
 ## Output
 

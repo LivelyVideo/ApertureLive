@@ -30,10 +30,10 @@ The full guide, with examples and the reasons behind each rule, is `docs/widgets
 | `startBroadcasting` | `null` | Goes live (opens the QR scanner if there is no ingest URL) |
 | `stopBroadcasting` | `null` | Shows the native stop confirmation |
 | `requestSnapshotImage` | `null` | The reply is `snapshotImage`, or nothing if no frame is available |
-| `setPendingValues` | `{ headers: { [name]: string \| string[] } }` | Accepted only while the app waits for pending values; then the app goes live |
+| `setPendingValues` | `{ headers: { [name]: string } }` or `{ headers: { [name]: string[] } }`, never mixed | Accepted only while the app waits for pending values; then the app goes live, even if `headers` was missing, mixed or all dropped |
 | `setWebviewOrigin` | origin string | Sets the target origin for events; use `location.origin` |
 | `setSessionConfigurationLink` | `{ url: string, otp?: string }` | `url` must be HTTPS on the host of the session's QR code; the reply is `sessionConfigurationUpdated` |
-| `updateSessionConfiguration` | a session configuration object (must include `whip`, `metadata.rtmpURL` or `metadata.srtURL`) | Merged into the profile; the reply is `sessionConfigurationUpdated` (iOS only) |
+| `updateSessionConfiguration` | a **complete** session configuration object (must include `whip`, `metadata.rtmpURL` or `metadata.srtURL`) | Saved to the profile. Left-out settings such as ICE servers, display name, video settings and RTMP/SRT fields are reset, so never send a partial update. The reply is `sessionConfigurationUpdated` (iOS only) |
 
 `setPendingValues` drops these headers: `Authorization`, `Content-Type`, `Content-Length`, `Host`, `Cookie`, `Connection`.
 
@@ -45,7 +45,7 @@ The full guide, with examples and the reasons behind each rule, is `docs/widgets
 | `snapshotImage` | `data:image/jpeg;base64,…` |
 | `sessionConfigurationUpdated` | JSON string `{"success":bool,"error"?:string}` |
 
-No other events exist. The app reports neither the mute state nor the active camera, and it doesn't send the current state when the page loads. On iOS the widget loads when the stream goes live.
+No other events exist. The app reports neither the mute state nor the active camera, and it doesn't send the current state when the page loads. Treat the state as unknown until the first `callStateChanged`. The widget usually loads just after going live, but it also loads before the broadcast while waiting for pending values.
 
 ## Session configuration entry
 

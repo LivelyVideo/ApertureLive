@@ -137,7 +137,7 @@ Every command is a `{ type, data }` object sent through `nativeApp.postMessage`.
 | `setPendingValues` | `{ headers: { … } }` | Supplies the values the app is waiting for before it goes live. See [Pending values](#pending-values). |
 | `setWebviewOrigin` | origin string, such as `"https://widgets.example.com"` | Sets the target origin the app uses when it posts events to your page. |
 | `setSessionConfigurationLink` | `{ url, otp? }` | Fetches a new session configuration from `url` and applies it. The reply is a [`sessionConfigurationUpdated`](#sessionconfigurationupdated) event. |
-| `updateSessionConfiguration` | a session configuration object | Merges the object into the active profile's configuration. The reply is a [`sessionConfigurationUpdated`](#sessionconfigurationupdated) event. |
+| `updateSessionConfiguration` | a complete session configuration object | Saves the object to the active profile. Settings you leave out may be reset, so send the whole configuration (see [Session configuration updates](#session-configuration-updates)). The reply is a [`sessionConfigurationUpdated`](#sessionconfigurationupdated) event. |
 
 The app doesn't report the mute state or which camera is active. If your UI shows them, track them yourself, and keep in mind the broadcaster can also change them with the app's own controls. Because `userCamera` and `worldCamera` toggle for now, a button labeled "Front camera" can select the back camera. Until they select a specific camera, offer a single "Flip camera" button.
 
@@ -167,7 +167,7 @@ Sent each time the stream state changes. `data` is one of these strings:
 | `failed` | The stream failed. |
 | `stopped` | The stream ended. |
 
-The app doesn't send the current state when your page loads; you receive the next change. On iOS the widget loads when the stream goes live, so treat "loaded with no event yet" as `live`. Write the code so it also accepts states it hasn't seen before.
+The app doesn't send the current state when your page loads; you receive the next change. Treat the state as **unknown** until the first event arrives. The widget usually loads just after the stream goes live, but it also loads before the broadcast starts while the app waits for [pending values](#pending-values), and when the built-in test widget is opened. Don't assume `live` on load. Write the code so it also accepts states it hasn't seen before.
 
 ### `snapshotImage`
 
@@ -217,7 +217,7 @@ Use pending values when the stream can't start until the widget supplies somethi
    });
    ```
 
-   Header values can be strings or arrays of strings. The app joins array values with commas.
+   Header values are either **all strings** or **all arrays of strings**; the app joins array values with commas. Don't mix the two in one message: iOS then discards every header (see the rules below).
 4. The app adds the headers to the request it sends to the ingest server, then starts the broadcast right away.
 
 Rules:
@@ -225,6 +225,7 @@ Rules:
 - The app accepts `setPendingValues` only while it's waiting. At any other time it ignores the command.
 - The app drops the headers `Authorization`, `Content-Type`, `Content-Length`, `Host`, `Cookie`, and `Connection`, in any letter case. Put the session token in the configuration's top-level `headers` instead.
 - If `data` isn't an object, the app ignores the command and keeps waiting. The broadcaster can cancel or scan again.
+- **You get one try.** If `data` is an object but `headers` is missing, isn't an object, mixes strings and arrays, or contains only dropped headers, the app still stops waiting and starts the broadcast, without your values. The app doesn't tell the widget, and it won't accept another `setPendingValues`. Check your payload before you send it: `{ headers: { … } }`, with every value a string, or every value an array of strings.
 
 ### Session configuration updates
 
@@ -242,17 +243,24 @@ send('setSessionConfigurationLink', {
 - `url` must use `https://`, and its host must be the same as the host of the QR code or link that set up the session. The app rejects any other host.
 - If the stream is live, the app stops it, applies the new configuration, and starts it again.
 
-**`updateSessionConfiguration`** sends the configuration itself:
+**`updateSessionConfiguration`** sends the configuration itself. **Send a complete configuration**, the same document your QR code URL returns, with your changes applied:
 
 ```js
 send('updateSessionConfiguration', {
   whip: 'https://ingest.example.com/whip/my-stream',
-  metadata: { options: { resolution: '1080p' } }
+  headers: { Authorization: 'Bearer <session-token>' },
+  ice_servers: [{ urls: ['stun:stun.example.com:3478'] }],
+  metadata: {
+    name: 'Studio A',
+    widgets: [{ key: 'appWidget', url: 'https://widgets.example.com/controls.html' }],
+    options: { resolution: '1080p', videoBitrate: 4000 }
+  }
 });
 ```
 
 - The object has the same shape as a configuration fetched from a QR code, and the app reads it with the same rules (see [`session-configuration-schema.yaml`](../session-configuration-schema.yaml)). It must include an ingest endpoint: `whip`, `metadata.rtmpURL` or `metadata.srtURL`.
-- The app merges the object into the active profile. Top-level settings that you leave out keep their current values. A setting that you include replaces the stored one as a whole; for example, sending `widgets` replaces the whole widget list.
+- **Don't send a partial update.** For settings you leave out, the app keeps only `whip`, the `Authorization` token, `widgets`, `ui`, `pendingValues`, `logUrl`, `lockOrientation`, `lockCameraMode`, `startBitrate`, and the H.264, `useCBR`, `fixedEncodingMode` and `audioPriorityMode` options. Everything else resets to its default or disappears: the ICE servers, the display name (`metadata.name`), `resolution`, `videoBitrate`, `audioBitrate`, `videoCodec`, `framerate`, `defaultCameraFacing`, `streamName`, `platformName`, and the RTMP and SRT fields. For example, an update that sends only `{ whip, metadata: { options: { resolution: '1080p' } } }` wipes the ICE servers and display name, and switches an RTMP or SRT profile to WHIP.
+- A setting that you include replaces the stored one as a whole; for example, sending `widgets` replaces the whole widget list.
 - The app saves the change but doesn't restart a running stream.
 - iOS supports this command. Android doesn't yet (see [Platform differences](#platform-differences)).
 
@@ -322,6 +330,7 @@ To work on both platforms, set `key: "appWidget"`, give every cookie a `domain`,
 | `JSON.parse` fails on `callStateChanged` | Its `data` is a plain string such as `live`, not JSON. Only `sessionConfigurationUpdated` sends JSON. |
 | No `snapshotImage` reply | No camera frame was available yet. Retry after the preview is running. |
 | "Front camera" switches to the back camera | `userCamera` and `worldCamera` currently toggle. See the [command reference](#command-reference-widget--app). |
-| `setPendingValues` has no effect | The app isn't waiting for pending values (the configuration has no `metadata.options.pendingValues`), or every header you sent is on the dropped list. |
+| `setPendingValues` is ignored | The app isn't waiting for pending values: the configuration has no `metadata.options.pendingValues`, or the app already accepted an earlier `setPendingValues`. |
+| The stream starts, but without your pending values | `headers` was missing, wasn't an object, mixed strings and arrays, or held only dropped headers. The app went live without them. See the [pending values rules](#pending-values). |
 | `setSessionConfigurationLink` replies `URL host not allowed` | The host of `url` isn't the host of the QR code or link that set up the session. |
 | Cookies are missing on Android | The cookie has no `domain`. |

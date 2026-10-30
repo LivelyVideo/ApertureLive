@@ -37,7 +37,9 @@
 <body>
 
 <!-- ===== UI: replace with your own ===== -->
-<div class="status">Stream: <strong id="callState">live</strong></div>
+<!-- The app sends no state on load, and the widget can load before the
+     broadcast starts, so show "unknown" until the first event. -->
+<div class="status">Stream: <strong id="callState">unknown</strong></div>
 <div class="controls">
   <button type="button" onclick="AppBridge.send('toggleMic')">Toggle mic</button>
   <button type="button" onclick="AppBridge.send('flipCamera')">Flip camera</button>

@@ -10,4 +10,4 @@ Developer resources for integrating with Aperture Live, the live-streaming app f
 
 ## Using Claude Code
 
-This repo includes [Claude Code](https://claude.com/claude-code) skills. Open the repo in Claude Code and ask it to create a widget (the `create-widget` skill) or to check a session configuration (the `validate-session-config` skill). The skills use the bridge contract in `docs/widgets.md`.
+This repo includes [Claude Code](https://claude.com/claude-code) skills. Open the repo in Claude Code and ask it to create a widget (the `create-widget` skill) or to check a session configuration (the `validate-session-config` skill). The skills read the bridge contract from the `widget-bridge-reference` skill (`.claude/skills/widget-bridge-reference/SKILL.md`), a condensed copy of [`docs/widgets.md`](docs/widgets.md). When the bridge changes, update both.
