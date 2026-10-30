@@ -207,6 +207,8 @@ The app compresses the JPEG so it fits through the bridge. If no camera frame is
 
 Use pending values when the stream can't start until the widget supplies something, such as a token the page obtains after the broadcaster signs in.
 
+> **WHIP sessions only.** The values are HTTP headers added to the WHIP request, so they only reach the ingest when the session streams over WHIP. RTMP and SRT have no such request. A configuration with `metadata.rtmpURL` or `metadata.srtURL` and `pendingValues` still opens your widget and waits for `setPendingValues`, but the app then goes live without sending your values, and nothing tells the widget. For RTMP or SRT, put the credentials in the configuration itself (`rtmpStreamKey`, `srtStreamKey`, `srtPassphrase`), or have the widget fetch a fresh configuration with `setSessionConfigurationLink`.
+
 1. Put a non-empty `metadata.options.pendingValues` object in the session configuration. The app checks only that it isn't empty; the keys list what your widget will supply.
 
    ```json

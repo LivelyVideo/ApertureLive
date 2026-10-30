@@ -18,6 +18,7 @@ Get these from the developer. Ask only for what you can't infer, and fill the re
 | File name and location | `widgets/<slug>.html` |
 | Controls and features (see the bridge reference) | Toggle mic and flip camera |
 | Whether it supplies pending values, and which headers | No |
+| The session's transport: WHIP, RTMP or SRT (ask only if it supplies pending values) | WHIP |
 | The HTTPS URL where the page will be hosted | `https://widgets.example.com/<slug>.html`, marked as a placeholder |
 | Whether it must work on Android | No |
 
@@ -30,6 +31,7 @@ Get these from the developer. Ask only for what you can't infer, and fill the re
    - Offer camera switching as a single "Flip camera" button (`flipCamera`). `userCamera` and `worldCamera` currently toggle, so a "Front"/"Back" pair would be misleading. Add that pair only if the developer insists, and leave a comment that explains the toggle.
    - Show the stream state from `callStateChanged`. Start the display at "unknown", and don't run logic that assumes a state until the first event arrives. The app sends no state on load, and the widget can load before the broadcast starts (pending values, test widget).
    - For snapshots, send `requestSnapshotImage`, show the `snapshotImage` data URL in an `<img>`, and add a timeout message, since the app may not reply.
+   - Pending values only work for WHIP sessions; for RTMP or SRT the app goes live without them. If the session uses RTMP or SRT, don't build a pending-values flow. Tell the developer to put the credentials in the configuration (`rtmpStreamKey`, `srtStreamKey`, `srtPassphrase`) or to fetch a fresh configuration with `setSessionConfigurationLink`.
    - For pending values, send `setPendingValues` with `{ headers: { … } }` once the page has the values. Make every value a string, or every value an array of strings; never mix them. Never use the headers the app drops (see the reference). Validate the payload before sending: the app goes live after the first `setPendingValues`, even if the headers were unusable.
    - For `updateSessionConfiguration`, send the complete configuration, not just the changed fields; settings left out can be reset.
    - The starter already sends `setWebviewOrigin` with `location.origin` on load; keep it. Remove it only if the widget navigates to a page on another origin, such as a sign-in redirect: the app keeps the first origin, so events would stop reaching the new page.

@@ -208,7 +208,15 @@ components:
             type: array
             items:
               type: string
-          description: Pending configuration values
+          description: >-
+            Values the widget must supply, with `setPendingValues`, before the
+            stream starts. When non-empty, the client opens the widget and
+            waits for them. Only `headers` is supported; they're added to the
+            WHIP request, so pending values only work for WHIP sessions. With
+            `rtmpURL` or `srtURL` set, the client still waits, but then goes
+            live without sending the values.
+          example:
+            headers: ["X-Stream-Token"]
         ui:
           $ref: '#/components/schemas/UI'
         fixedEncodingMode:

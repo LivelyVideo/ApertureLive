@@ -38,7 +38,7 @@ Report each finding as **error** (the configuration is rejected, or the feature 
    - Only the first entry loads; note any others.
    - `key` should be `"appWidget"` for Android support (warning).
    - Each cookie has `name` and `value` (error) and should have `domain` (warning; Android skips cookies without one).
-10. `metadata.options.pendingValues`, if present, is a non-empty object whose values are arrays of strings, and there is a widget to supply the values (error if there's no widget).
+10. `metadata.options.pendingValues`, if present, is a non-empty object whose values are arrays of strings, and there is a widget to supply the values (error if there's no widget). If the session uses RTMP or SRT (`metadata.rtmpURL` or `metadata.srtURL` is set), report an error: pending values are WHIP-only, so the app waits for the widget and then goes live without the values.
 11. Deprecated field: `stun_urls` (use `ice_servers`).
 12. Retired keys that iOS still decodes: `metadata.privacy`, `metadata.location`, `metadata.ptt`, `metadata.locationHref`, `metadata.options.privacy`, `metadata.options.ui.hideBar` and `metadata.options.ui.contentMargin`. They're not in the schema and have no effect, but iOS still type-checks them. Report a warning to remove any that are present. Report an error if one has the wrong type, because iOS rejects the whole payload: the `privacy`, `location` and `ptt` keys and `hideBar` must be booleans, `locationHref` a string, and `contentMargin` an integer.
 
