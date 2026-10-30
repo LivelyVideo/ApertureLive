@@ -36,26 +36,31 @@ Get these from the developer. Ask only for what you can't infer, and fill the re
    - For `updateSessionConfiguration`, send the complete configuration, not just the changed fields; settings left out can be reset.
    - The starter already sends `setWebviewOrigin` with `location.origin` on load; keep it. Remove it only if the widget navigates to a page on another origin, such as a sign-in redirect: the app keeps the first origin, so events would stop reaching the new page.
    - For `sessionConfigurationUpdated`, call `JSON.parse(data)` and show `success` or `error`.
+   - If the page calls an API on another origin, such as a token endpoint, remind the developer that the API must send CORS headers for the widget's origin. Widget `headers` only go on the first page request, so explain how the page identifies itself: a query string on the widget URL, or a cookie whose `domain` is the API's host. See "Calling your own API" in `docs/widgets.md`.
 4. Keep it to one self-contained file with no build step and no external scripts, unless the developer asks for them.
 
 ## 4. Produce the session configuration entry
 
-Print the `metadata.widgets` entry that loads the page. Mention that it goes inside the configuration's `metadata` object:
+Print one snippet, rooted at `metadata`, that the developer merges into their configuration's existing `metadata` object. Include `options.pendingValues` in the same snippet when the widget supplies pending values:
 
 ```json
 {
   "metadata": {
     "widgets": [
       { "key": "appWidget", "url": "https://widgets.example.com/<slug>.html" }
-    ]
+    ],
+    "options": {
+      "pendingValues": { "headers": ["X-Stream-Token"] }
+    }
   }
 }
 ```
 
 - Always use `key: "appWidget"` so the entry also works on Android.
 - Add `headers` or `cookies` only if the page needs them. Give each cookie a `domain`.
-- If the widget supplies pending values, also print the matching `metadata.options.pendingValues` entry, for example `{ "headers": ["X-Stream-Token"] }`.
-- If the developer gave you a whole configuration, validate the result with the `validate-session-config` skill.
+- Leave out `options` when the widget doesn't supply pending values. If the developer's configuration already has `metadata.options`, tell them to merge `pendingValues` into it rather than replace it.
+- If the developer gave you a whole configuration, merge the snippet into it and validate the result with the `validate-session-config` skill.
+- If you produced only the snippet, still validate it with `validate-session-config`, but run only the checks that apply to a fragment: widgets, cookies, `pendingValues` and retired keys. Tell the developer that the endpoint and header checks were skipped because the snippet has no ingest settings.
 
 ## 5. Check before you finish
 

@@ -61,6 +61,15 @@ Widgets live in `metadata.widgets`. Here is a minimal session configuration that
 
 App Store and TestFlight builds refuse to load a widget URL that doesn't use `https://`. The panel stays empty and no error appears on screen. Serve your page over HTTPS from the start, even while you develop it (see [Testing your widget](#testing-your-widget)).
 
+### Calling your own API
+
+Many widgets call an API of their own, for example to fetch a stream token for [pending values](#pending-values). The widget is an ordinary web page in a web view, so the usual browser rules apply:
+
+- **CORS.** If the API is on a different origin from the page (for example the page is on `widgets.example.com` and the API on `api.example.com`), the API must send CORS headers that allow the page's origin.
+- **Identifying the broadcaster.** Widget `headers` go on the first page request only, so they can't carry credentials for later API calls. Use one of these instead:
+  - **A query string on the widget URL**, such as `"url": "https://widgets.example.com/panel.html?session=abc123"`. The page reads it from `location.search` and passes it to your API. This works for any API host.
+  - **A cookie for the API's host.** Add it to the widget's `cookies` with `domain` set to the API's host, and call the API with `fetch(url, { credentials: 'include' })`. The API must also send `Access-Control-Allow-Credentials: true`. This only works when the API is on the same site as the page, such as two subdomains of `example.com`. The web view blocks cookies on cross-site requests.
+
 ## The bridge
 
 Messages go both ways:
@@ -227,7 +236,7 @@ Use pending values when the stream can't start until the widget supplies somethi
    ```
 
    Header values are either **all strings** or **all arrays of strings**; the app joins array values with commas. Don't mix the two in one message: iOS then discards every header (see the rules below).
-4. The app adds the headers to the request it sends to the ingest server, then starts the broadcast right away.
+4. The app adds the headers to the request it sends to the ingest server, then starts the broadcast right away. Your page stays loaded when the broadcast starts. It doesn't reload, so it keeps its state and won't need to send `setPendingValues` again.
 
 Rules:
 
