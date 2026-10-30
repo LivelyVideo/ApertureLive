@@ -15,7 +15,7 @@ The full guide, with examples and the reasons behind each rule, is `docs/widgets
 - **App → widget:** the app calls `window.postMessage({ name: string, data: string }, targetOrigin)`. Listen with `window.addEventListener('message', e => …)` and read `e.data.name` and `e.data.data`.
 - Event `data` is **always a string**. Only `sessionConfigurationUpdated` carries JSON that needs `JSON.parse`.
 - The app ignores unknown command types without an error.
-- Never use `window.vuplex`. That bridge has been removed.
+- `window.webkit.messageHandlers.nativeApp` is the only bridge, on iOS and Android. Don't post through any other object.
 
 ## Commands (widget → app)
 

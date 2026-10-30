@@ -58,7 +58,7 @@ Print the `metadata.widgets` entry that loads the page. Mention that it goes ins
 ## 5. Check before you finish
 
 - Every `send(...)` type and every `on(...)` name appears in the bridge reference.
-- No `window.vuplex`, no `http://` widget URL, and no real secrets in the page or the configuration.
+- Every message goes through `window.webkit.messageHandlers.nativeApp`; there's no `http://` widget URL, and no real secrets in the page or the configuration.
 - Open the page in a desktop browser if you can: it must load without errors and log `[AppBridge] no bridge; would send …` when you click a button.
 
 Then tell the developer how to test it on a device. Point them to "Testing your widget" in `docs/widgets.md`: host over HTTPS (a tunnel works), put the configuration URL in a QR code, scan it, and go live.

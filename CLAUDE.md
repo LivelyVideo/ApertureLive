@@ -20,6 +20,6 @@ This is the public developer repo for Aperture Live, an iOS and Android live-str
 
 ## Rules
 
-- Widget code uses `window.webkit.messageHandlers.nativeApp.postMessage({ type, data })`. `window.vuplex` no longer works.
+- Widget code uses `window.webkit.messageHandlers.nativeApp.postMessage({ type, data })`, on both iOS and Android.
 - Widget and configuration URLs in examples use `https://` and placeholder hosts such as `example.com`. Never put real tokens, internal hostnames, or private repo paths in this repo; everything here is public.
 - When the bridge or schema changes, update `docs/widgets.md`, the `widget-bridge-reference` skill, and the samples together so they don't drift apart.

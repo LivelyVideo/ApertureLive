@@ -333,7 +333,7 @@ To work on both platforms, set `key: "appWidget"`, give every cookie a `domain`,
 | Symptom | Likely cause |
 |---|---|
 | The panel is empty and the page never loads | The URL isn't `https://`, the server returned an error, or the device can't reach the host. |
-| Buttons do nothing | The page posts through something other than `window.webkit.messageHandlers.nativeApp`, or a `type` is misspelled. The old `window.vuplex.postMessage` bridge no longer works. |
+| Buttons do nothing | The page posts through something other than `window.webkit.messageHandlers.nativeApp`, or a `type` is misspelled. |
 | No events arrive | `setWebviewOrigin` was set to an origin that doesn't match the page, or the listener ignores the message shape `{ name, data }`. |
 | `JSON.parse` fails on `callStateChanged` | Its `data` is a plain string such as `live`, not JSON. Only `sessionConfigurationUpdated` sends JSON. |
 | No `snapshotImage` reply | No camera frame was available yet. Retry after the preview is running. |
