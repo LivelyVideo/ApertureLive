@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!--
+  Aperture Live widget starter.
+
+  Copy this file, keep the bridge section as it is, and replace the UI section
+  with your own. The bridge contract is documented in docs/widgets.md.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Aperture Live widget</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    /* The web view is transparent; this keeps text readable over the camera. */
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 16px;
+  }
+  .status { font-size: 14px; margin-bottom: 12px; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    font: inherit;
+  }
+  button:active { background: rgba(255, 255, 255, 0.25); }
+</style>
+</head>
+<body>
+
+<!-- ===== UI: replace with your own ===== -->
+<!-- The app sends no state on load, and the widget can load before the
+     broadcast starts, so show "unknown" until the first event. -->
+<div class="status">Stream: <strong id="callState">unknown</strong></div>
+<div class="controls">
+  <button type="button" onclick="AppBridge.send('toggleMic')">Toggle mic</button>
+  <button type="button" onclick="AppBridge.send('flipCamera')">Flip camera</button>
+</div>
+
+<script>
+// ===== Bridge: keep as is =====
+var AppBridge = (function () {
+  var listeners = {};
+
+  // Looked up on every send: on Android the bridge is installed while the page
+  // starts loading, so a lookup made once at load time can miss it.
+  function handler() {
+    return window.webkit &&
+      window.webkit.messageHandlers &&
+      window.webkit.messageHandlers.nativeApp;
+  }
+
+  window.addEventListener('message', function (event) {
+    var msg = event.data;
+    if (!msg || typeof msg.name !== 'string') return;
+    (listeners[msg.name] || []).forEach(function (fn) { fn(msg.data); });
+  });
+
+  return {
+    isAvailable: function () { return !!handler(); },
+    // Sends a command to the app. Returns false outside the app.
+    send: function (type, data) {
+      var h = handler();
+      if (!h) {
+        console.log('[AppBridge] no bridge; would send', type, data);
+        return false;
+      }
+      h.postMessage({ type: type, data: data === undefined ? null : data });
+      return true;
+    },
+    // Calls fn(data) for each app event with this name. data is always a string.
+    on: function (name, fn) {
+      (listeners[name] = listeners[name] || []).push(fn);
+    }
+  };
+})();
+
+// ===== Your widget logic =====
+// Narrow app → widget events to this page's origin. Remove this if the widget
+// navigates to another origin (for example a sign-in redirect).
+window.addEventListener('load', function () {
+  AppBridge.send('setWebviewOrigin', window.location.origin);
+});
+
+AppBridge.on('callStateChanged', function (state) {
+  document.getElementById('callState').textContent = state;
+});
+</script>
+</body>
+</html>

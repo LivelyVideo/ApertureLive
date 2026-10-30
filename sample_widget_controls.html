@@ -1,72 +1,131 @@
-<html>
-    <head>
-        <style>
-            .container {
-                column-count: 1;
-                padding: 25px;
-            }
-            .container div {
-                padding: 25px;
-                text-align: center;
-            }
-            .container div button {
-                width: 500px;
-                height: 100px;
-                font-size: 36px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div><button type="button" onclick="toggleMic()">toggle mic</button></div>
-            <div><button type="button" onclick="mute()">mute</button></div>
-            <div><button type="button" onclick="unmute()">unmute</button></div>
-            <div><button type="button" onclick="flipCamera()">flip camera</button></div>
-            <div><button type="button" onclick="userCamera()">user camera</button></div>
-            <div><button type="button" onclick="worldCamera()">world camera</button></div>
-            <div><button type="button" onclick="startBroadcasting()">start broadcasting</button></div>
-            <div><button type="button" onclick="stopBroadcasting()">stop broadcasting</button></div>
-        </div>
-        <script>
-            function toggleMic()
-            {
-                postMessage({ type: 'toggleMic', data: '' });
-            }
-            function mute()
-            {
-                postMessage({ type: 'mute', data: '' });
-            }
-            function unmute()
-            {
-                postMessage({ type: 'unmute', data: '' });
-            }
-            function flipCamera()
-            {
-                postMessage({ type: 'flipCamera', data: '' });
-            }
-            function userCamera()
-            {
-                postMessage({ type: 'userCamera', data: '' });
-            }
-            function worldCamera()
-            {
-                postMessage({ type: 'worldCamera', data: '' });
-            }
-            function startBroadcasting()
-            {
-                postMessage({ type: 'startBroadcasting', data: '' });
-            }
-            function stopBroadcasting()
-            {
-                postMessage({ type: 'stopBroadcasting', data: '' });
-            }
-            function postMessage(msg)
-            {
-                if (window.vuplex)
-                {
-                    window.vuplex.postMessage(msg);
-                }
-            }
-        </script>
-    </body>
+<!DOCTYPE html>
+<!--
+  Aperture Live sample widget: a button for every control command, a live
+  stream-state readout, and a snapshot preview. See docs/widgets.md.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperture Live sample controls</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: rgba(0, 0, 0, 0.65);
+    color: #eee;
+    padding: 12px;
+  }
+  .status {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .status strong { color: #fff; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #666; margin-right: 6px; }
+  .dot.on { background: #4c4; }
+  #lastEvent { color: #7bf; word-break: break-all; }
+  #snapshot { display: none; width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  button {
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.10);
+    color: inherit;
+    font: inherit;
+    font-size: 14px;
+  }
+  button:active { background: rgba(255, 255, 255, 0.22); }
+  button.wide { grid-column: span 2; }
+  button.go { border-color: rgba(80, 180, 80, 0.8); color: #8e8; }
+  button.stop { border-color: rgba(210, 70, 70, 0.8); color: #f88; }
+</style>
+</head>
+<body>
+
+<div class="status">
+  <span class="dot" id="bridgeDot"></span>Stream: <strong id="callState">unknown</strong><br>
+  Last event: <span id="lastEvent">none</span>
+</div>
+
+<img id="snapshot" alt="Camera snapshot">
+
+<div class="grid">
+  <button type="button" onclick="send('toggleMic')">Toggle mic</button>
+  <button type="button" onclick="send('flipCamera')">Flip camera</button>
+  <button type="button" onclick="send('mute')">Mute</button>
+  <button type="button" onclick="send('unmute')">Unmute</button>
+  <!-- userCamera and worldCamera currently toggle like flipCamera, so the labels
+       say so. In your own widget, offer a single "Flip camera" button. -->
+  <button type="button" onclick="send('userCamera')">userCamera (toggles)</button>
+  <button type="button" onclick="send('worldCamera')">worldCamera (toggles)</button>
+  <button type="button" class="wide" onclick="requestSnapshot()">Snapshot</button>
+  <button type="button" class="wide go" onclick="send('startBroadcasting')">Start broadcasting</button>
+  <button type="button" class="wide stop" onclick="send('stopBroadcasting')">Stop broadcasting</button>
+</div>
+
+<script>
+  function bridge() {
+    return window.webkit &&
+      window.webkit.messageHandlers &&
+      window.webkit.messageHandlers.nativeApp;
+  }
+
+  function send(type, data) {
+    var handler = bridge();
+    if (!handler) {
+      showEvent('[no bridge] ' + type);
+      return false;
+    }
+    handler.postMessage({ type: type, data: data === undefined ? null : data });
+    return true;
+  }
+
+  function showEvent(text) {
+    document.getElementById('lastEvent').textContent = text;
+  }
+
+  var snapshotTimer = null;
+
+  function requestSnapshot() {
+    if (!send('requestSnapshotImage')) return;
+    clearTimeout(snapshotTimer);
+    // The app sends nothing when no camera frame is available.
+    snapshotTimer = setTimeout(function () { showEvent('no snapshot received'); }, 3000);
+  }
+
+  window.addEventListener('message', function (event) {
+    var msg = event.data;
+    if (!msg || typeof msg.name !== 'string') return;
+
+    switch (msg.name) {
+      case 'callStateChanged':
+        document.getElementById('callState').textContent = msg.data;
+        showEvent('callStateChanged: ' + msg.data);
+        break;
+      case 'snapshotImage':
+        clearTimeout(snapshotTimer);
+        var img = document.getElementById('snapshot');
+        img.src = msg.data;
+        img.style.display = 'block';
+        showEvent('snapshotImage: received');
+        break;
+      default:
+        showEvent(msg.name + ': ' + msg.data);
+    }
+  });
+
+  window.addEventListener('load', function () {
+    if (bridge()) {
+      document.getElementById('bridgeDot').classList.add('on');
+      // Narrow app → widget events to this page's origin.
+      send('setWebviewOrigin', window.location.origin);
+    }
+  });
+</script>
+</body>
 </html>
