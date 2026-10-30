@@ -335,7 +335,10 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: HTTP headers for widget requests
+          description: >-
+            HTTP headers sent with the first request for the widget page only.
+            Later requests the page makes (navigation, XHR, fetch) don't carry
+            them; use `cookies` for values every request needs.
         key:
           type: string
           description: Unique identifier for the widget
@@ -348,8 +351,11 @@ components:
     CookieData:
       type: object
       description: >-
-        Cookie to install before loading a widget. Only `name`, `value`,
-        `domain`, and `path` are consumed by the client.
+        Cookie to install before loading a widget. Both clients use `name`,
+        `value`, `domain` and `path`; `path` defaults to `/`. The Android
+        client also applies `sameSite` and `secure`, which iOS ignores. Always
+        set `domain`: iOS falls back to the widget URL's host when it's
+        missing or empty, but Android skips the cookie.
       required: [name, value]
       properties:
         name:
@@ -363,10 +369,10 @@ components:
         sameSite:
           type: string
           enum: [Strict, Lax, None]
-          description: Not consumed by the client
+          description: Applied by the Android client; ignored on iOS.
         secure:
           type: boolean
-          description: Not consumed by the client
+          description: Applied by the Android client; ignored on iOS.
 
     RTCIceServer:
       type: object

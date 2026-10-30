@@ -30,12 +30,14 @@ The full guide, with examples and the reasons behind each rule, is `docs/widgets
 | `startBroadcasting` | `null` | Goes live (opens the QR scanner if there is no ingest URL) |
 | `stopBroadcasting` | `null` | Shows the native stop confirmation |
 | `requestSnapshotImage` | `null` | The reply is `snapshotImage`, or nothing if no frame is available |
-| `setPendingValues` | `{ headers: { [name]: string } }` or `{ headers: { [name]: string[] } }`, never mixed | Accepted only while the app waits for pending values; then the app goes live, even if `headers` was missing, mixed or all dropped |
+| `setPendingValues` | `{ headers: { [name]: string } }` or `{ headers: { [name]: string[] } }`, never mixed | Accepted only while the app waits for pending values. A `data` value that isn't an object is ignored, and the app keeps waiting. Any object, including one whose `headers` is missing, mixed or all dropped, makes the app go live, and no second try is accepted |
 | `setWebviewOrigin` | origin string | Sets the target origin for events; use `location.origin` |
-| `setSessionConfigurationLink` | `{ url: string, otp?: string }` | `url` must be HTTPS on the host of the session's QR code; the reply is `sessionConfigurationUpdated` |
-| `updateSessionConfiguration` | a **complete** session configuration object (must include `whip`, `metadata.rtmpURL` or `metadata.srtURL`) | Saved to the profile. Left-out settings such as ICE servers, display name, video settings and RTMP/SRT fields are reset, so never send a partial update. The reply is `sessionConfigurationUpdated` (iOS only) |
+| `setSessionConfigurationLink` | `{ url: string, otp?: string }` | `url` must be HTTPS on the host of the session's QR code. Applied to the current session, and restarts the stream if it's `live`, `connecting` or `creating`, but not while `reconnecting`. The reply is `sessionConfigurationUpdated` |
+| `updateSessionConfiguration` | a **complete** session configuration object (must include `whip`, `metadata.rtmpURL` or `metadata.srtURL`) | Saved to the profile only: not applied to the current session, and no restart. Left-out settings such as ICE servers, display name, video settings and RTMP/SRT fields are reset, so never send a partial update. The reply is `sessionConfigurationUpdated` (iOS only) |
 
-`setPendingValues` drops these headers: `Authorization`, `Content-Type`, `Content-Length`, `Host`, `Cookie`, `Connection`.
+`setPendingValues` drops these headers, matched in any letter case: `Authorization`, `Content-Type`, `Content-Length`, `Host`, `Cookie`, `Connection`.
+
+Only three commands reply: `requestSnapshotImage` (`snapshotImage`), `setSessionConfigurationLink` and `updateSessionConfiguration` (both `sessionConfigurationUpdated`).
 
 ## Events (app → widget)
 

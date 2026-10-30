@@ -59,9 +59,10 @@
   <button type="button" onclick="send('flipCamera')">Flip camera</button>
   <button type="button" onclick="send('mute')">Mute</button>
   <button type="button" onclick="send('unmute')">Unmute</button>
-  <!-- userCamera and worldCamera currently toggle like flipCamera; see docs/widgets.md. -->
-  <button type="button" onclick="send('userCamera')">User camera</button>
-  <button type="button" onclick="send('worldCamera')">World camera</button>
+  <!-- userCamera and worldCamera currently toggle like flipCamera (MOB-362), so the
+       labels say so. In your own widget, offer a single "Flip camera" button. -->
+  <button type="button" onclick="send('userCamera')">userCamera (toggles)</button>
+  <button type="button" onclick="send('worldCamera')">worldCamera (toggles)</button>
   <button type="button" class="wide" onclick="requestSnapshot()">Snapshot</button>
   <button type="button" class="wide go" onclick="send('startBroadcasting')">Start broadcasting</button>
   <button type="button" class="wide stop" onclick="send('stopBroadcasting')">Stop broadcasting</button>

@@ -84,6 +84,12 @@ var AppBridge = (function () {
 })();
 
 // ===== Your widget logic =====
+// Narrow app → widget events to this page's origin. Remove this if the widget
+// navigates to another origin (for example a sign-in redirect).
+window.addEventListener('load', function () {
+  AppBridge.send('setWebviewOrigin', window.location.origin);
+});
+
 AppBridge.on('callStateChanged', function (state) {
   document.getElementById('callState').textContent = state;
 });

@@ -32,7 +32,7 @@ Get these from the developer. Ask only for what you can't infer, and fill the re
    - For snapshots, send `requestSnapshotImage`, show the `snapshotImage` data URL in an `<img>`, and add a timeout message, since the app may not reply.
    - For pending values, send `setPendingValues` with `{ headers: { … } }` once the page has the values. Make every value a string, or every value an array of strings; never mix them. Never use the headers the app drops (see the reference). Validate the payload before sending: the app goes live after the first `setPendingValues`, even if the headers were unusable.
    - For `updateSessionConfiguration`, send the complete configuration, not just the changed fields; settings left out can be reset.
-   - Send `setWebviewOrigin` with `location.origin` on load. Skip this for a page that will be loaded from more than one origin.
+   - The starter already sends `setWebviewOrigin` with `location.origin` on load; keep it. Remove it only if the widget navigates to a page on another origin, such as a sign-in redirect: the app keeps the first origin, so events would stop reaching the new page.
    - For `sessionConfigurationUpdated`, call `JSON.parse(data)` and show `success` or `error`.
 4. Keep it to one self-contained file with no build step and no external scripts, unless the developer asks for them.
 

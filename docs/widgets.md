@@ -89,7 +89,7 @@ send('toggleMic');
 - `type` is required. A message without a string `type` is ignored.
 - `data` depends on the command. Send `null` for commands that take no payload.
 - Look up the handler each time you send, as above, rather than once at page load. On Android the bridge is installed as the page starts loading, so a check made very early can miss it.
-- Commands are fire-and-forget. Only the session configuration commands send a reply, as the `sessionConfigurationUpdated` event.
+- Most commands are fire-and-forget. Only three send a reply: `requestSnapshotImage` replies with `snapshotImage`, and the two session configuration commands reply with `sessionConfigurationUpdated`.
 - The app ignores unknown `type` values without an error, so a typo fails silently. Copy command names from the reference below.
 
 ### Receiving events
@@ -147,7 +147,7 @@ The app doesn't report the mute state or which camera is active. If your UI show
 send('setWebviewOrigin', window.location.origin);
 ```
 
-After this, the app delivers events only while your page's origin matches this value. If you set a different origin, events stop arriving without an error. Send it once, after the page loads.
+After this, the app delivers events only while your page's origin matches this value. If you set a different origin, events stop arriving without an error. Send it once, after the page loads. The app keeps the value until the widget is unloaded, so don't send it from a widget that navigates to a page on another origin, such as a sign-in redirect; events would stop reaching that page.
 
 ## Event reference (app → widget)
 
@@ -177,8 +177,15 @@ The reply to `requestSnapshotImage`. `data` is a JPEG data URL (`data:image/jpeg
 
 The reply to `setSessionConfigurationLink` and `updateSessionConfiguration`. `data` is a JSON string:
 
+On success:
+
 ```json
 { "success": true }
+```
+
+On failure:
+
+```json
 { "error": "URL host not allowed", "success": false }
 ```
 
@@ -241,7 +248,8 @@ send('setSessionConfigurationLink', {
 ```
 
 - `url` must use `https://`, and its host must be the same as the host of the QR code or link that set up the session. The app rejects any other host.
-- If the stream is live, the app stops it, applies the new configuration, and starts it again.
+- The app applies the new configuration to the current session. If the stream is `live`, `connecting` or `creating`, the app stops it and starts it again with the new configuration.
+- While the stream is `reconnecting`, the app saves and applies the new configuration but doesn't restart, so the reconnect attempt that's already running keeps the old credentials. You still get `success: true`. Avoid renewing credentials during `reconnecting`; wait for `live`, or for `failed` and then a new start.
 
 **`updateSessionConfiguration`** sends the configuration itself. **Send a complete configuration**, the same document your QR code URL returns, with your changes applied:
 
@@ -261,7 +269,7 @@ send('updateSessionConfiguration', {
 - The object has the same shape as a configuration fetched from a QR code, and the app reads it with the same rules (see [`session-configuration-schema.yaml`](../session-configuration-schema.yaml)). It must include an ingest endpoint: `whip`, `metadata.rtmpURL` or `metadata.srtURL`.
 - **Don't send a partial update.** For settings you leave out, the app keeps only `whip`, the `Authorization` token, `widgets`, `ui`, `pendingValues`, `logUrl`, `lockOrientation`, `lockCameraMode`, `startBitrate`, and the H.264, `useCBR`, `fixedEncodingMode` and `audioPriorityMode` options. Everything else resets to its default or disappears: the ICE servers, the display name (`metadata.name`), `resolution`, `videoBitrate`, `audioBitrate`, `videoCodec`, `framerate`, `defaultCameraFacing`, `streamName`, `platformName`, and the RTMP and SRT fields. For example, an update that sends only `{ whip, metadata: { options: { resolution: '1080p' } } }` wipes the ICE servers and display name, and switches an RTMP or SRT profile to WHIP.
 - A setting that you include replaces the stored one as a whole; for example, sending `widgets` replaces the whole widget list.
-- The app saves the change but doesn't restart a running stream.
+- The app saves the change to the profile only. It doesn't restart a running stream, and it doesn't apply the change to the current session either, so a `startBroadcasting` sent straight afterwards may still use the old settings. To change settings for the current session, use `setSessionConfigurationLink`, which applies them right away.
 - iOS supports this command. Android doesn't yet (see [Platform differences](#platform-differences)).
 
 ## Layout and styling
