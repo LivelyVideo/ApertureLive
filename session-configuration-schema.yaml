@@ -3,18 +3,49 @@ info:
   title: Aperture Live Session Configuration API
   version: 1.0.0
   description: >-
-    Schema for session configuration used in WHIP (WebRTC) and RTMP streaming
-    sessions. The payload is fetched from the URL encoded in the QR code and
+    Schema for session configuration used in WHIP (WebRTC), RTMP and SRT
+    streaming sessions. The payload is fetched from the URL encoded in the QR code and
     decoded with a strict, camelCase-literal JSON decoder: keys are matched
     exactly as spelled below (no snake_case conversion except where a field is
     explicitly named with underscores), and unknown keys are ignored.
+    Exception: the iOS client still decodes some retired keys that are no
+    longer documented here: `metadata.privacy`, `metadata.location`,
+    `metadata.ptt`, `metadata.locationHref`, `metadata.options.privacy`,
+    `metadata.options.ui.hideBar` and `metadata.options.ui.contentMargin`.
+    They have no effect, but a value of the wrong type (for example
+    `"privacy": "true"` instead of a boolean) fails the whole payload on iOS.
+    Omit them.
 
 components:
   schemas:
     SessionConfiguration:
       type: object
-      description: Main session configuration received via QR code payload
-      required: [whip]
+      description: >-
+        Main session configuration received via QR code payload. A payload
+        needs at least one ingest endpoint: `whip`, `metadata.rtmpURL` or
+        `metadata.srtURL`. When more than one is set, the client streams over
+        RTMP first, then SRT, then WHIP. An empty or whitespace-only
+        `rtmpURL` or `srtURL` doesn't count. The Android client currently accepts
+        only WHIP payloads, and also requires at least one entry in
+        `ice_servers` or `stun_urls`.
+      anyOf:
+        - required: [whip]
+        - required: [metadata]
+          properties:
+            metadata:
+              required: [rtmpURL]
+              properties:
+                rtmpURL:
+                  type: string
+                  pattern: '\S'
+        - required: [metadata]
+          properties:
+            metadata:
+              required: [srtURL]
+              properties:
+                srtURL:
+                  type: string
+                  pattern: '\S'
       properties:
         headers:
           type: object
@@ -22,18 +53,21 @@ components:
             type: string
           description: >-
             HTTP headers for WHIP requests. Only `Authorization` is consumed by
-            the client: a leading "Bearer " prefix is stripped and the remainder
-            is used as the session bearer token.
+            the client: every occurrence of "Bearer " (case-sensitive, with
+            the trailing space) is removed and the rest is used as the session
+            bearer token. Send `Bearer <token>` or the bare token; a lowercase
+            `bearer <token>` is sent as-is and fails authentication.
         metadata:
           $ref: '#/components/schemas/Metadata'
         whip:
           type: string
           format: uri
           description: >-
-            WHIP endpoint URL for WebRTC ingestion. Required on every payload,
-            including RTMP sessions, and must use the `https` scheme — the
-            client rejects the configuration otherwise. For RTMP sessions the
-            value is stored but unused (see `metadata.rtmpURL`).
+            WHIP endpoint URL for WebRTC ingestion. Must use the `https`
+            scheme when present; the client rejects the configuration
+            otherwise. Optional on iOS when `metadata.rtmpURL` or
+            `metadata.srtURL` is set, in which case it is ignored. Required by
+            the Android client.
         stun_urls:
           type: array
           items:
@@ -86,24 +120,6 @@ components:
           items:
             $ref: '#/components/schemas/Widget'
           description: Embedded web widgets to display during broadcast
-        privacy:
-          type: boolean
-          nullable: true
-          deprecated: true
-          description: >-
-            "Deprecated: Moved to metadata.options.privacy." Still honored as a
-            fallback when `metadata.options.privacy` is absent.
-        location:
-          type: boolean
-          nullable: true
-          description: Whether location tracking is enabled
-        ptt:
-          type: boolean
-          nullable: true
-          description: Push-to-talk mode enabled
-        locationHref:
-          type: string
-          description: Location reference URL
         rtmpURL:
           type: string
           format: uri
@@ -112,8 +128,9 @@ components:
             RTMP ingest URL for RTMP egress to platforms that only accept RTMP
             (e.g. YouTube, Twitch, custom). When present and non-empty, the
             session streams via RTMP instead of WHIP/WebRTC; the transport is
-            inferred from the presence of this field. The top-level `whip` URL
-            is ignored for RTMP sessions.
+            inferred from the presence of this field. RTMP takes precedence
+            over `srtURL` and `whip`, which are ignored when it is set. iOS
+            only for now; the Android client doesn't read it.
           example: "rtmp://live.example.com/app"
         rtmpStreamKey:
           type: string
@@ -123,6 +140,58 @@ components:
             omitted or empty when the key is embedded in `rtmpURL`. Ignored
             unless `rtmpURL` is present and non-empty.
           example: "sk-test-123"
+        srtURL:
+          type: string
+          format: uri
+          nullable: true
+          description: >-
+            SRT ingest URL. When present and non-empty (and `rtmpURL` is not),
+            the session streams via SRT instead of WHIP/WebRTC; `whip` is
+            ignored. Must use the `srt://` scheme and include a host; the port
+            defaults to 9710. May contain at most one `?`: extra query items
+            such as `mode=`, `maxbw=` or `pbkeylen=` are passed through to
+            SRT, but the stream ID belongs in `srtStreamKey`, not the URL. iOS
+            only for now; the Android client doesn't read it. An invalid SRT
+            value (URL, stream ID, passphrase or latency) stops the stream
+            from connecting, with an error that names the problem. Unlike
+            `options`, a value of the wrong type here (e.g. the string "120"
+            for `srtLatencyMs`) fails the whole payload.
+          example: "srt://ingest.example.com:9710"
+        srtStreamKey:
+          type: string
+          nullable: true
+          description: >-
+            Sent to the ingest as the SRT stream ID (`SRTO_STREAMID`), which
+            identifies and/or authenticates the publish. Any characters are
+            allowed, up to 512 bytes. Ignored unless `srtURL` is in use.
+          example: "/live/my-stream?key=abc123"
+        srtPassphrase:
+          type: string
+          nullable: true
+          minLength: 10
+          maxLength: 79
+          description: >-
+            AES encryption passphrase, 10–79 characters per the SRT spec. Omit
+            it for an unencrypted stream. Ignored unless `srtURL` is in use.
+        srtLatencyMs:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: >-
+            SRT receiver latency budget in milliseconds: the buffer SRT has
+            for retransmitting lost packets, traded against glass-to-glass
+            latency. Must be greater than 0. Defaults to 120 when omitted.
+            Ignored unless `srtURL` is in use.
+          example: 120
+        srtAdaptiveBitrate:
+          type: boolean
+          nullable: true
+          default: true
+          description: >-
+            Whether the encoder adjusts its bitrate to SRT's congestion
+            signals (round-trip time, loss and send-queue depth). Ignored
+            unless `srtURL` is in use.
+          example: true
         ecs:
           $ref: '#/components/schemas/ECS'
 
@@ -139,11 +208,15 @@ components:
             type: array
             items:
               type: string
-          description: Pending configuration values
-        privacy:
-          type: boolean
-          nullable: true
-          description: Enable privacy features (blur/mask)
+          description: >-
+            Values the widget must supply, with `setPendingValues`, before the
+            stream starts. When non-empty, the client opens the widget and
+            waits for them. Only `headers` is supported; they're added to the
+            WHIP request, so pending values only work for WHIP sessions. With
+            `rtmpURL` or `srtURL` set, the client still waits, but then goes
+            live without sending the values.
+          example:
+            headers: ["X-Stream-Token"]
         ui:
           $ref: '#/components/schemas/UI'
         fixedEncodingMode:
@@ -254,15 +327,6 @@ components:
           nullable: true
           default: false
           description: Use compact UI layout
-        hideBar:
-          type: boolean
-          nullable: true
-          default: false
-          description: Hide the status/control bar
-        contentMargin:
-          type: integer
-          nullable: true
-          description: Content margin in pixels
 
     Widget:
       type: object
@@ -279,7 +343,10 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: HTTP headers for widget requests
+          description: >-
+            HTTP headers sent with the first request for the widget page only.
+            Later requests the page makes (navigation, XHR, fetch) don't carry
+            them; use `cookies` for values every request needs.
         key:
           type: string
           description: Unique identifier for the widget
@@ -292,8 +359,11 @@ components:
     CookieData:
       type: object
       description: >-
-        Cookie to install before loading a widget. Only `name`, `value`,
-        `domain`, and `path` are consumed by the client.
+        Cookie to install before loading a widget. Both clients use `name`,
+        `value`, `domain` and `path`; `path` defaults to `/`. The Android
+        client also applies `sameSite` and `secure`, which iOS ignores. Always
+        set `domain`: iOS falls back to the widget URL's host when it's
+        missing or empty, but Android skips the cookie.
       required: [name, value]
       properties:
         name:
@@ -304,16 +374,13 @@ components:
           type: string
         path:
           type: string
-        httpOnly:
-          type: boolean
-          description: Not consumed by the client
         sameSite:
           type: string
           enum: [Strict, Lax, None]
-          description: Not consumed by the client
+          description: Applied by the Android client; ignored on iOS.
         secure:
           type: boolean
-          description: Not consumed by the client
+          description: Applied by the Android client; ignored on iOS.
 
     RTCIceServer:
       type: object
@@ -333,10 +400,6 @@ components:
         credential:
           type: string
           description: Credential for TURN authentication
-        credentialType:
-          type: string
-          enum: [password, oauth]
-          description: Type of credential. Not consumed by the client.
 
     ECS:
       type: object
