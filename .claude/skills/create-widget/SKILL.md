@@ -36,7 +36,7 @@ Get these from the developer. Ask only for what you can't infer, and fill the re
    - For `updateSessionConfiguration`, send the complete configuration, not just the changed fields; settings left out can be reset.
    - The starter already sends `setWebviewOrigin` with `location.origin` on load; keep it. Remove it only if the widget navigates to a page on another origin, such as a sign-in redirect: the app keeps the first origin, so events would stop reaching the new page.
    - For `sessionConfigurationUpdated`, call `JSON.parse(data)` and show `success` or `error`.
-   - If the page calls an API on another origin, such as a token endpoint, remind the developer that the API must send CORS headers for the widget's origin. Widget `headers` only go on the first page request, so explain how the page identifies itself: a query string on the widget URL, or a cookie whose `domain` is the API's host. See "Calling your own API" in `docs/widgets.md`.
+   - If the page calls an API on another origin, such as a token endpoint, remind the developer that the API must send CORS headers for the widget's origin. Widget `headers` only go on the first page request, so explain how the page identifies itself: a query string on the widget URL (works for any API host), or a cookie whose `domain` is the API's host (only when the API is on the same site as the page, because the web view blocks cross-site cookies). See "Calling your own API" in `docs/widgets.md`.
 4. Keep it to one self-contained file with no build step and no external scripts, unless the developer asks for them.
 
 ## 4. Produce the session configuration entry
