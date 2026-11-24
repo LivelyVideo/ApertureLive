@@ -112,6 +112,11 @@ window.addEventListener('message', (event) => {
     case 'callStateChanged':
       console.log('Stream state:', msg.data); // e.g. "live"
       break;
+    case 'callStateFailed': {
+      const failure = JSON.parse(msg.data); // { code, message }
+      console.log('Stream failed:', failure.code);
+      break;
+    }
     case 'snapshotImage':
       document.querySelector('#snapshot').src = msg.data;
       break;
@@ -124,7 +129,7 @@ window.addEventListener('message', (event) => {
 });
 ```
 
-- `event.data.data` is **always a string**. Events that carry structured data, such as `sessionConfigurationUpdated`, send it as a JSON string, so call `JSON.parse` on it.
+- `event.data.data` is **always a string**. Events that carry structured data (`callStateFailed`, `reconnectAttempt`, `credentialsExpired` and `sessionConfigurationUpdated`) send it as a JSON string, so call `JSON.parse` on it. `callStateChanged` and `snapshotImage` send plain strings.
 - Your page also receives any `message` events that it or its iframes post. Check `name` before you act on a message.
 - By default the app posts with target origin `'*'`. To narrow it, send [`setWebviewOrigin`](#setwebvieworigin).
 
@@ -173,10 +178,65 @@ Sent each time the stream state changes. `data` is one of these strings:
 | `connecting` | The app is connecting to the ingest server. |
 | `live` | On air. |
 | `reconnecting` | The connection dropped and the app is retrying. |
-| `failed` | The stream failed. |
+| `failed` | The stream failed. A [`callStateFailed`](#callstatefailed) event just before it says why. |
 | `stopped` | The stream ended. |
 
 The app doesn't send the current state when your page loads; you receive the next change. Treat the state as **unknown** until the first event arrives. The widget usually loads just after the stream goes live, but it also loads before the broadcast starts while the app waits for [pending values](#pending-values), and when the built-in test widget is opened. Don't assume `live` on load. Write the code so it also accepts states it hasn't seen before.
+
+From Aperture Live iOS 2.8, every failure sends `failed`, followed by `idle` once the app has torn the stream down. That includes a stream that never went live, such as a refused connection, and one that gave up reconnecting. Earlier versions sent only `idle` for most failures. After a failure the app can close the widget once the stream is torn down, so act on these events straight away rather than waiting for a later one.
+
+### `callStateFailed`
+
+Sent once each time the stream fails, just before `callStateChanged: "failed"`. `data` is a JSON string:
+
+```json
+{ "code": "reconnectionExhausted", "message": "Reconnection failed after 5 attempts" }
+```
+
+`code` says why, and is stable enough to branch on:
+
+| `code` | Meaning |
+|---|---|
+| `noWhipEndpoint` | The session has no WHIP endpoint to stream to. |
+| `whipNegotiationFailed` | The WHIP endpoint refused or failed the connection request. |
+| `webRTCOfferFailed` | The app couldn't create the WebRTC offer. |
+| `connectionFailed` | The connection to the ingest server failed. |
+| `reconnectionExhausted` | The connection dropped and the app stopped retrying. |
+| `rtmpPublishFailed` | The RTMP server refused or ended the publish. |
+| `srtPublishFailed` | The SRT server refused or ended the connection. |
+
+New codes may be added. Treat a code you don't know as a generic failure. `message` is a human-readable description for logs. Don't compare it to exact strings in your code, because the wording can change.
+
+Sent by Aperture Live iOS 2.8 and later. See [Platform differences](#platform-differences).
+
+### `reconnectAttempt`
+
+Sent at the start of each reconnect attempt after the connection drops. `callStateChanged: "reconnecting"` arrives once per drop; this event arrives for every attempt, so a widget can show progress. `data` is a JSON string:
+
+```json
+{ "attempt": 3 }
+```
+
+`attempt` counts up from 1. A drop soon after a reconnect can carry on the count instead of starting again at 1. The app doesn't send a maximum, because it stops retrying after a time limit as well as a number of attempts. If the retries succeed, `callStateChanged: "live"` follows. If they don't, `callStateFailed` with `reconnectionExhausted` follows.
+
+Sent by Aperture Live iOS 2.8 and later.
+
+### `credentialsExpired`
+
+Sent when the credentials from the session's QR code or link stop being usable. `data` is a JSON string:
+
+```json
+{ "reason": "expired" }
+```
+
+| `reason` | Meaning |
+|---|---|
+| `expired` | The credentials' expiry time passed while the app was open. A stream that's live keeps going until it ends, so the widget can offer fresh credentials, for example with [`setSessionConfigurationLink`](#command-reference-widget--app), before the broadcaster stops. |
+| `rejected` | The streaming server refused the credentials (HTTP 401 or 403). The stream ends. |
+
+Only WHIP sessions carry credentials that expire, so RTMP and SRT sessions never send it. Treat a `reason` you don't know like `expired`.
+
+Sent by Aperture Live iOS 2.8 and later.
 
 ### `snapshotImage`
 
@@ -303,6 +363,7 @@ Open your page in a browser. The bridge isn't there, so `send()` returns `false`
 
 ```js
 window.postMessage({ name: 'callStateChanged', data: 'live' }, '*');
+window.postMessage({ name: 'callStateFailed', data: JSON.stringify({ code: 'connectionFailed', message: 'Connection failed' }) }, '*');
 ```
 
 The starter template logs each command it would have sent, so you can check them in the console.
@@ -334,6 +395,7 @@ The bridge described above is the iOS bridge. The Android app accepts the same `
 | Control commands (`toggleMic`, `mute`, `unmute`, `flipCamera`, `userCamera`, `worldCamera`, `startBroadcasting`, `stopBroadcasting`) | Supported | Ignored |
 | `requestSnapshotImage`, `updateSessionConfiguration` | Supported | Ignored |
 | `callStateChanged` | Sent | Sent, with the same values |
+| `callStateFailed`, `reconnectAttempt`, `credentialsExpired` | Sent (2.8 and later) | Not sent |
 | `sessionConfigurationUpdated` errors | A message for each failure | `"refresh_failed"` |
 | Cookie without `domain` | Uses the widget URL's host | Skipped |
 
@@ -346,7 +408,8 @@ To work on both platforms, set `key: "appWidget"`, give every cookie a `domain`,
 | The panel is empty and the page never loads | The URL isn't `https://`, the server returned an error, or the device can't reach the host. |
 | Buttons do nothing | The page posts through something other than `window.webkit.messageHandlers.nativeApp`, or a `type` is misspelled. |
 | No events arrive | `setWebviewOrigin` was set to an origin that doesn't match the page, or the listener ignores the message shape `{ name, data }`. |
-| `JSON.parse` fails on `callStateChanged` | Its `data` is a plain string such as `live`, not JSON. Only `sessionConfigurationUpdated` sends JSON. |
+| `JSON.parse` fails on `callStateChanged` | Its `data` is a plain string such as `live`, not JSON. Only `callStateFailed`, `reconnectAttempt`, `credentialsExpired` and `sessionConfigurationUpdated` send JSON. |
+| No `callStateFailed`, `reconnectAttempt` or `credentialsExpired` | The app is older than iOS 2.8, or it's the Android app, which doesn't send them yet. Rely on `callStateChanged` alone there. |
 | No `snapshotImage` reply | No camera frame was available yet. Retry after the preview is running. |
 | "Front camera" switches to the back camera | `userCamera` and `worldCamera` currently toggle. See the [command reference](#command-reference-widget--app). |
 | `setPendingValues` is ignored | The app isn't waiting for pending values: the configuration has no `metadata.options.pendingValues`, or the app already accepted an earlier `setPendingValues`. |

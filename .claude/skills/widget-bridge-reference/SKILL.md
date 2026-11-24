@@ -13,7 +13,7 @@ The full guide, with examples and the reasons behind each rule, is `docs/widgets
 
 - **Widget → app:** `window.webkit.messageHandlers.nativeApp.postMessage({ type: string, data: any })`. Look up the handler on each send; don't cache it at load.
 - **App → widget:** the app calls `window.postMessage({ name: string, data: string }, targetOrigin)`. Listen with `window.addEventListener('message', e => …)` and read `e.data.name` and `e.data.data`.
-- Event `data` is **always a string**. Only `sessionConfigurationUpdated` carries JSON that needs `JSON.parse`.
+- Event `data` is **always a string**. `callStateFailed`, `reconnectAttempt`, `credentialsExpired` and `sessionConfigurationUpdated` carry JSON that needs `JSON.parse`; `callStateChanged` and `snapshotImage` are plain strings.
 - The app ignores unknown command types without an error.
 - `window.webkit.messageHandlers.nativeApp` is the only bridge, on iOS and Android. Don't post through any other object.
 
@@ -44,10 +44,13 @@ Only three commands reply: `requestSnapshotImage` (`snapshotImage`), `setSession
 | `name` | `data` |
 |---|---|
 | `callStateChanged` | `idle` \| `creating` \| `connecting` \| `live` \| `reconnecting` \| `failed` \| `stopped` |
+| `callStateFailed` | JSON string `{"code":string,"message":string}`, sent just before `callStateChanged: "failed"`. `code` is one of `noWhipEndpoint`, `whipNegotiationFailed`, `webRTCOfferFailed`, `connectionFailed`, `reconnectionExhausted`, `rtmpPublishFailed`, `srtPublishFailed`; accept unknown codes. `message` is for logs only, never compare it |
+| `reconnectAttempt` | JSON string `{"attempt":number}`, once per reconnect attempt, counting up from 1 (a drop soon after a reconnect can carry on the count). No maximum is sent |
+| `credentialsExpired` | JSON string `{"reason":"expired"\|"rejected"}`. `expired`: the token lapsed; a live stream keeps going. `rejected`: the server refused it (401/403) and the stream ends. WHIP sessions only |
 | `snapshotImage` | `data:image/jpeg;base64,…` |
 | `sessionConfigurationUpdated` | JSON string `{"success":bool,"error"?:string}` |
 
-No other events exist. The app reports neither the mute state nor the active camera, and it doesn't send the current state when the page loads. Treat the state as unknown until the first `callStateChanged`. The widget usually loads just after going live, but it also loads before the broadcast while waiting for pending values.
+No other events exist. `callStateFailed`, `reconnectAttempt` and `credentialsExpired` come from Aperture Live iOS 2.8 and later; older versions and Android don't send them, so a widget must still work from `callStateChanged` alone. From 2.8, every failure sends `failed` and then `idle`; earlier versions sent only `idle` for most failures. The app reports neither the mute state nor the active camera, and it doesn't send the current state when the page loads. Treat the state as unknown until the first `callStateChanged`. The widget usually loads just after going live, but it also loads before the broadcast while waiting for pending values.
 
 ## Session configuration entry
 
@@ -67,4 +70,4 @@ No other events exist. The app reports neither the mute state nor the active cam
 
 ## Android
 
-Android installs the same `webkit.messageHandlers.nativeApp` shape. It acts only on `setPendingValues`, `setWebviewOrigin`, and `setSessionConfigurationLink`, and the widget is usable only while the app waits for pending values. It still sends `callStateChanged`. When a widget needs controls that work on Android, say that the controls are iOS-only today.
+Android installs the same `webkit.messageHandlers.nativeApp` shape. It acts only on `setPendingValues`, `setWebviewOrigin`, and `setSessionConfigurationLink`, and the widget is usable only while the app waits for pending values. It still sends `callStateChanged`, but not `callStateFailed`, `reconnectAttempt` or `credentialsExpired`. When a widget needs controls that work on Android, say that the controls are iOS-only today.

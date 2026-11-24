@@ -107,6 +107,23 @@
         document.getElementById('callState').textContent = msg.data;
         showEvent('callStateChanged: ' + msg.data);
         break;
+      case 'callStateFailed': {
+        // { code, message }: branch on code; message is for logs only.
+        var failure = JSON.parse(msg.data);
+        document.getElementById('callState').textContent = 'failed (' + failure.code + ')';
+        showEvent('callStateFailed: ' + failure.code + ' (' + failure.message + ')');
+        break;
+      }
+      case 'reconnectAttempt':
+        // { attempt }: one per attempt, counting up from 1. No maximum is sent.
+        var attempt = JSON.parse(msg.data).attempt;
+        document.getElementById('callState').textContent = 'reconnecting (attempt ' + attempt + ')';
+        showEvent('reconnectAttempt: ' + attempt);
+        break;
+      case 'credentialsExpired':
+        // { reason }: "expired" (a live stream keeps going) or "rejected" (it ends).
+        showEvent('credentialsExpired: ' + JSON.parse(msg.data).reason);
+        break;
       case 'snapshotImage':
         clearTimeout(snapshotTimer);
         var img = document.getElementById('snapshot');

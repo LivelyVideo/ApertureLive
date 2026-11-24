@@ -93,6 +93,14 @@ window.addEventListener('load', function () {
 AppBridge.on('callStateChanged', function (state) {
   document.getElementById('callState').textContent = state;
 });
+
+// Why the stream failed (iOS 2.8 and later). Sent just before
+// callStateChanged "failed". Branch on code; message is for logs only.
+AppBridge.on('callStateFailed', function (data) {
+  var failure = JSON.parse(data);
+  console.log('[widget] stream failed:', failure.code, failure.message);
+  document.getElementById('callState').textContent = 'failed (' + failure.code + ')';
+});
 </script>
 </body>
 </html>
