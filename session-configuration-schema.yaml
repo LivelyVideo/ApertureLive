@@ -404,9 +404,14 @@ components:
     ECS:
       type: object
       description: >-
-        Elastic Common Schema logging configuration. Only `user.name` and
-        `user.full_name` are consumed by the client; the remaining fields are
-        accepted for compatibility and ignored.
+        Elastic Common Schema values the app attaches to the remote log
+        documents it sends while the session's profile is active, so a
+        platform can find a broadcaster's logs by its own user and platform
+        IDs. From Aperture Live iOS 2.8, `user.id`, `user.name`,
+        `user.full_name`, `user.hash`, `user.domain` and `labels.platform.id`
+        are sent; `user.email` and `user.roles` are ignored and never sent.
+        Earlier iOS versions, and the Android app, use only `user.name` and
+        `user.full_name`, as display-name fallbacks.
       properties:
         user:
           $ref: '#/components/schemas/EcsUser'
@@ -424,36 +429,46 @@ components:
       properties:
         id:
           type: string
-          description: Platform identifier
+          description: >-
+            Platform identifier. Sent in log documents as the label
+            `platform_id` (iOS 2.8 and later).
 
     EcsUser:
       type: object
-      description: ECS User information for logging
+      description: >-
+        The broadcaster's identity on the platform, sent as the log documents'
+        `user` (iOS 2.8 and later). Values are trimmed, and empty values are
+        treated as absent.
       properties:
         domain:
           type: string
-          description: Directory domain name (e.g., LDAP/AD)
+          description: Directory domain name (e.g., LDAP/AD). Sent in log documents.
         email:
           type: string
           format: email
+          description: Accepted for compatibility. Ignored, and never sent in log documents.
         full_name:
           type: string
           description: >-
             User's full name. Used as the session display name when
-            `metadata.name` is absent.
+            `metadata.name` is absent, and sent in log documents.
         hash:
           type: string
-          description: Anonymized user hash
+          description: Anonymized user hash. Sent in log documents.
         id:
           type: string
-          description: Unique user identifier
+          description: >-
+            Unique user identifier, sent in log documents as `user.id`. A
+            number is also accepted. When it's absent or empty, the app sends
+            its own device ID as `user.id` instead.
         name:
           type: string
           description: >-
             Short name or login. Used as the session display name when both
-            `metadata.name` and `ecs.user.full_name` are absent.
+            `metadata.name` and `ecs.user.full_name` are absent. Sent in log
+            documents as `user.name`, in place of the display name.
         roles:
           type: array
           items:
             type: string
-          description: User roles
+          description: User roles. Accepted for compatibility. Ignored, and never sent in log documents.
